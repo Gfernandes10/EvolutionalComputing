@@ -1,0 +1,4 @@
+from MainOptimizationScript import MainOptimizationScript
+
+OptimizationObject = MainOptimizationScript(FITNESS_FUNCTION_SELECTION='Akley')
+OptimizationObject.initialize_optimization()
