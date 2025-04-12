@@ -71,12 +71,16 @@ class MainOptimizationScript:
         """
         self.visualize_fitness_function()
 
+        self.elitism_optimization()
+
+    def elitism_optimization(self):
         population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
         #Optimization loop
         bestValue = []
         for idx in range(self.GENERATION_COUNT):
             #Evaluate fitness of the population
             population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
+            self.population_fitness = population_fitness
             #Select parents for crossover
             selected_parents = self.selection(population_fitness)
             #Create offspring through crossover and mutation
@@ -96,7 +100,7 @@ class MainOptimizationScript:
             best_individual_value =  best_individual_fitness [0] 
             best_individual_fitness_value = best_individual_fitness[1] # Evaluate fitness of the best individual
             bestValue.append(best_individual_fitness_value) # Store the best fitness value
-            print("Generation: ", idx, "| Best Fitness: {:.6f}".format(best_individual_fitness_value), "| Best Solution: ", best_individual_value)
+            # print("Generation: ", idx, "| Best Fitness: {:.6f}".format(best_individual_fitness_value), "| Best Solution: ", best_individual_value)
             
             # Update population
             population = [elite[0] for elite in elites] + [chromosome[0] for chromosome in new_population_fitness]
@@ -154,3 +158,43 @@ class MainOptimizationScript:
             if random.random() < self.MUTATION_RATE:
                 mutated_individual[i] = random.random() + mutated_individual[i]
         return mutated_individual
+
+    def evaluate_performance(self, num_executions, optimal_solution=None, tolerance=1e-1):
+        """
+        Evaluate the performance of the optimization algorithm.
+        :param num_executions: Number of times to run the optimization.
+        :param optimal_solution: Known optimal solution value (if available).
+        :param tolerance: Tolerance for determining success in finding the optimal solution.
+        """
+        success_count = 0
+        best_solutions = []
+        best_fitness_values = []
+        best_chromosomes = []  # Store the best chromosomes
+
+        self.visualize_fitness_function()
+        for _ in range(num_executions):
+            self.elitism_optimization()
+            # Retrieve the best solution and its fitness value from the last generation
+            best_individual = min(self.population_fitness, key=lambda x: x[1])
+            best_solutions.append(best_individual[0])
+            best_fitness_values.append(best_individual[1])
+            best_chromosomes.append(best_individual[0])  # Store the best chromosome
+
+            # Check if the solution is within the tolerance of the optimal solution
+            if optimal_solution is not None:
+                # Calculate Euclidean distance between the solution and the optimal solution
+                distance = sqrt(sum((a - b) ** 2 for a, b in zip(best_individual[0], optimal_solution)))
+                if distance <= tolerance:
+                    success_count += 1
+
+        # Calculate performance metrics
+        success_rate = success_count / num_executions
+        avg_best_fitness = sum(best_fitness_values) / num_executions
+        best_overall_solution = min(best_fitness_values)
+        best_overall_chromosome = best_chromosomes[best_fitness_values.index(best_overall_solution)]
+
+        print(f"Performance Metrics:")
+        print(f"Success Rate: {success_rate * 100:.2f}%")
+        print(f"Average Best Fitness: {avg_best_fitness:.6f}")
+        print(f"Best Solution Found: {best_overall_solution}")
+        print(f"Chromosome for Best Solution: {best_overall_chromosome}")
