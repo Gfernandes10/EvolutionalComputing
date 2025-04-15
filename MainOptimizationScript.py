@@ -1,3 +1,7 @@
+
+from Library.SelectionMethods import SelectionMethods
+from Library.CrossoverMethods import CrossoverMethods
+from Library.MutationMethods import MutationMethods
 import random
 import numpy as np
 from matplotlib import pyplot as plt
@@ -20,15 +24,22 @@ class MainOptimizationScript:
             raise ValueError(f"Invalid FITNESS_FUNCTION_SELECTION. Allowed values are: {self.ALLOWED_FITNESS_FUNCTIONS}")
 
         # Initialize configuration parameters
-        self.OPTIMIZATION_METHOD = 'GeneticAlgorithm'
         self.POPULATION_SIZE = 100
         self.GENERATION_COUNT = 200
-        self.CROSSOVER_RATE = 0.8
-        self.MUTATION_RATE = 0.5
+        
         self.CHROMOSOME_LENGTH = 2
         self.LOWER_BOUND = -100
         self.UPPER_BOUND = 100
         self.FITNESS_FUNCTION_SELECTION = FITNESS_FUNCTION_SELECTION
+        self.SELECTION_METHOD = 'TournamentSelection'
+        self.SELECTION_TOURNAMENT_SIZE = 10
+        self.CROSSOVER_METHOD = 'SinglePointCrossover'
+        self.CROSSOVER_RATE = 0.8
+        self.MUTATION_METHOD = 'RandomMutationOnIndividualGenes'
+        self.MUTATION_RATE = 0.5
+        self.OPTIMIZATION_METHOD = 'Elitism'
+        self.OPTIMIZATION_METHOD_NUMBER_ELITES = 10
+
 
     def evaluate_fitness(self,chromosome):
         match self.FITNESS_FUNCTION_SELECTION:
@@ -43,123 +54,21 @@ class MainOptimizationScript:
                 x = chromosome[0]
                 y = chromosome[1]
                 fitness_value = -20.0 * exp(-0.2 * sqrt(0.5 * (x**2 + y**2)))-exp(0.5 * (cos(2 * pi * x)+cos(2 * pi * y))) + e + 20
+                ENABLE_FITNESS_FUNCTION_VISUALIZATION = True
             case _:
                 raise ValueError("Invalid FITNESS_FUNCTION_SELECTION")
         return fitness_value
-    def visualize_fitness_function(self):
-        """
-        Visualize the fitness function in 3D.
-        """
-        if self.ENABLE_FITNESS_FUNCTION_VISUALIZATION:
-            print("Fitness function visualization is disabled.")
-            return
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-        x = np.linspace(self.LOWER_BOUND, self.UPPER_BOUND, 100)
-        y = np.linspace(self.LOWER_BOUND, self.UPPER_BOUND, 100)
-        X, Y = np.meshgrid(x, y)
-        Z = self.evaluate_fitness([X, Y])
-        ax.plot_surface(X, Y, Z, cmap='viridis')    
-        plt.show()        
         
-    def initialize_optimization(self):
+    def single_optimization(self):
         """
-        Initialize the optimization process.
+        Initialize the single optimization process.
         """
         self.visualize_fitness_function()
 
         self.elitism_optimization()
 
-    def elitism_optimization(self):
-        population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
-        #Optimization loop
-        bestValue = []
-        for idx in range(self.GENERATION_COUNT):
-            #Evaluate fitness of the population
-            population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
-            self.population_fitness = population_fitness
-            #Select parents for crossover
-            selected_parents = self.selection(population_fitness)
-            #Create offspring through crossover and mutation
-            offspring = []
-            for i in range(0, self.POPULATION_SIZE, 2):
-                parent1 = selected_parents[i]
-                parent2 = selected_parents[i + 1] if i + 1 < len(selected_parents) else selected_parents[0]
-                child1, child2 = self.crossover(parent1, parent2)
-                offspring.extend([self.mutation(child1), self.mutation(child2)])
-            new_population_fitness = [(chromosome, 0) for chromosome in offspring]
 
-            
-            #Apply elitism to retain the best individuals
-            num_elites = 10 # Number of elite individuals to retain
-            elites = sorted(population_fitness, key=lambda x: x[1])[:num_elites]
-            best_individual_fitness = min(population_fitness, key=lambda x: x[1])
-            best_individual_value =  best_individual_fitness [0] 
-            best_individual_fitness_value = best_individual_fitness[1] # Evaluate fitness of the best individual
-            bestValue.append(best_individual_fitness_value) # Store the best fitness value
-            # print("Generation: ", idx, "| Best Fitness: {:.6f}".format(best_individual_fitness_value), "| Best Solution: ", best_individual_value)
-            
-            # Update population
-            population = [elite[0] for elite in elites] + [chromosome[0] for chromosome in new_population_fitness]
-
-    def generate_chromosome(self):
-        """
-        Generate a random chromosome.
-        """
-        return [random.uniform(self.LOWER_BOUND, self.UPPER_BOUND) for _ in range(self.CHROMOSOME_LENGTH)]
-    
-    def selection(self, population_fitness):
-        """
-        Select parents for crossover using tournament selection.
-        """
-
-        # Selection Strategies
-
-        # 1. Tournament Selection
-        selected_parents = []  # List to store selected parents
-        tournament_size = 10  # Number of individuals in each tournament
-        for _ in range(len(population_fitness)):  # Loop through the population size
-            tournament = random.sample(population_fitness, tournament_size-1)  # Randomly select individuals for the tournament
-            winner = min(tournament, key=lambda x: x[1])  # Select the individual with the best fitness
-            selected_parents.append(winner[0])  # Add the winner's chromosome to the selected parents list
-        best_individual = min(population_fitness, key=lambda x: x[1])[0]  # Find the best individual in the population
-        selected_parents.append(best_individual)  # Ensure the best individual is included in the selected parents
-        return selected_parents  # Return the list of selected parents
-
-    def crossover(self, parent1, parent2):
-        """
-        Perform crossover between two parents.
-        """
-        # Crossover Strategies
-
-        # 1. Single-point crossover
-        if random.random() < self.CROSSOVER_RATE:
-            # Single-point crossover
-            crossover_point = random.randint(1, self.CHROMOSOME_LENGTH - 1)
-            child1 = parent1[:crossover_point] + parent2[crossover_point:]
-            child2 = parent2[:crossover_point] + parent1[crossover_point:]
-            return child1, child2
-        else:
-            # No crossover, return parents as children
-            return parent1, parent2
-        
-    def mutation(self, individual):
-        """
-        Perform mutation on a chromosome.
-        """
-        # Mutation Strategies
-
-        # 1. Random mutation on individual genes
-        mutated_individual = individual.copy()
-        for i in range(self.CHROMOSOME_LENGTH):
-            if random.random() < self.MUTATION_RATE:
-                mutated_individual[i] = random.random() + mutated_individual[i]
-        return mutated_individual
-
-    def evaluate_performance(self, num_executions, optimal_solution=None, tolerance=1e-1):
+    def multiple_optimization(self, num_executions, optimal_solution=None, tolerance=1e-1):
         """
         Evaluate the performance of the optimization algorithm.
         :param num_executions: Number of times to run the optimization.
@@ -198,3 +107,111 @@ class MainOptimizationScript:
         print(f"Average Best Fitness: {avg_best_fitness:.6f}")
         print(f"Best Solution Found: {best_overall_solution}")
         print(f"Chromosome for Best Solution: {best_overall_chromosome}")
+
+    def elitism_optimization(self):
+        population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
+        #Optimization loop
+
+        for idx in range(self.GENERATION_COUNT):
+            #Evaluate fitness of the population
+            population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
+            self.population_fitness = population_fitness
+            #Select parents for crossover
+            selected_parents = self.selection(population_fitness)
+            #Create offspring through crossover and mutation
+            offspring = []
+            for i in range(0, self.POPULATION_SIZE, 2):
+                parent1 = selected_parents[i]
+                parent2 = selected_parents[i + 1] if i + 1 < len(selected_parents) else selected_parents[0]
+                child1, child2 = self.crossover(parent1, parent2)
+                offspring.extend([self.mutation(child1), self.mutation(child2)])
+            new_population_fitness = [(chromosome, 0) for chromosome in offspring]
+            
+            #Apply elitism to retain the best individuals
+            num_elites = self.OPTIMIZATION_METHOD_NUMBER_ELITES # Number of elite individuals to retain
+            elites = sorted(population_fitness, key=lambda x: x[1])[:num_elites]
+            best_individual = min(population_fitness, key=lambda x: x[1])
+            best_individual_value =  best_individual [0] 
+            best_individual_fitness_value = best_individual[1] # Evaluate fitness of the best individual
+
+            # Update population
+            population = [elite[0] for elite in elites] + [chromosome[0] for chromosome in new_population_fitness]
+    
+
+
+
+    ########### Base functions ############
+
+    def generate_chromosome(self):
+        """
+        Generate a random chromosome.
+        """
+        return [random.uniform(self.LOWER_BOUND, self.UPPER_BOUND) for _ in range(self.CHROMOSOME_LENGTH)]
+    
+    def selection(self, population_fitness):
+        """
+        Select parents for crossover using tournament selection.
+
+        :param population_fitness: List of individuals containing chromosomes and their fitness values.
+        """
+
+        selected_parents_ = []
+        # Selection Strategies
+        match self.SELECTION_METHOD:
+        # 1. Tournament Selection
+            case 'TournamentSelection':
+                  # List to store selected parents
+                selected_parents = SelectionMethods.tournament_selection(population_fitness, tournament_size=self.SELECTION_TOURNAMENT_SIZE, selected_parents=selected_parents_)
+            case _:
+                selected_parents = selected_parents_
+                raise ValueError("Invalid SELECTION_METHOD")                
+        return selected_parents  # Return the list of selected parents
+
+    def crossover(self, parent1, parent2):
+        """
+        Perform crossover between two parents.
+        """
+        # Crossover Strategies
+        if random.random() < self.CROSSOVER_RATE:
+            match self.CROSSOVER_METHOD:
+            # 1. Single-point crossover
+                case 'SinglePointCrossover':
+                    child1, child2 = CrossoverMethods.single_point_crossover(parent1, parent2)
+                case _:
+                    raise ValueError("Invalid CROSSOVER_METHOD")
+            return child1, child2
+        else:
+            # No crossover, return parents as children
+            return parent1, parent2
+        
+    def mutation(self, individual):
+        """
+        Perform mutation on a chromosome.
+        """
+        # Mutation Strategies
+        match self.MUTATION_METHOD:
+        # 1. Random mutation on individual genes
+            case 'RandomMutationOnIndividualGenes':
+                mutated_individual = MutationMethods.random_mutation_on_individual_genes(individual, self.MUTATION_RATE)
+            case _:
+                raise ValueError("Invalid MUTATION_METHOD")
+        return mutated_individual
+
+    def visualize_fitness_function(self):
+        """
+        Visualize the fitness function in 3D.
+        """
+        if self.ENABLE_FITNESS_FUNCTION_VISUALIZATION:
+            print("Fitness function visualization is disabled.")
+            return
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+        x = np.linspace(self.LOWER_BOUND, self.UPPER_BOUND, 100)
+        y = np.linspace(self.LOWER_BOUND, self.UPPER_BOUND, 100)
+        X, Y = np.meshgrid(x, y)
+        Z = self.evaluate_fitness([X, Y])
+        ax.plot_surface(X, Y, Z, cmap='viridis')    
+        plt.show(block=False)        
