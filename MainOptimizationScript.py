@@ -1,4 +1,3 @@
-
 from Library.SelectionMethods import SelectionMethods
 from Library.CrossoverMethods import CrossoverMethods
 from Library.MutationMethods import MutationMethods
@@ -10,6 +9,8 @@ from numpy import sqrt
 from numpy import cos
 from numpy import e
 from numpy import pi
+import time  # Import for execution time measurement
+
 class MainOptimizationScript:
     def __init__(self, FITNESS_FUNCTION_SELECTION):
         """
@@ -18,6 +19,10 @@ class MainOptimizationScript:
         # Class Parameters
         self.ENABLE_FITNESS_FUNCTION_VISUALIZATION = False
         self.ALLOWED_FITNESS_FUNCTIONS = ['Base', 'Akley', 'Custom']
+        self.ResultsOverall = []  # Store performance data for all executions
+        self.BestResult = None   # Store the best execution result
+        self.diversity_per_generation = []  # Store diversity metrics
+        self.best_fitness_per_generation = []  # Store best fitness per generation
 
         # Validate FITNESS_FUNCTION_SELECTION
         if FITNESS_FUNCTION_SELECTION not in self.ALLOWED_FITNESS_FUNCTIONS:
@@ -25,7 +30,7 @@ class MainOptimizationScript:
 
         # Initialize configuration parameters
         self.POPULATION_SIZE = 100
-        self.GENERATION_COUNT = 200
+        self.GENERATION_COUNT = 50
         
         self.CHROMOSOME_LENGTH = 2
         self.LOWER_BOUND = -100
@@ -39,6 +44,7 @@ class MainOptimizationScript:
         self.MUTATION_RATE = 0.5
         self.OPTIMIZATION_METHOD = 'Elitism'
         self.OPTIMIZATION_METHOD_NUMBER_ELITES = 10
+
 
 
     def evaluate_fitness(self,chromosome):
@@ -81,10 +87,38 @@ class MainOptimizationScript:
         best_chromosomes = []  # Store the best chromosomes
 
         self.visualize_fitness_function()
-        for _ in range(num_executions):
+        self.ResultsOverall = []  # Reset results for new executions
+        best_overall_fitness = float('inf')  # Initialize best fitness as infinity
+
+        all_best_fitness_per_generation = []  # Store best fitness per generation for all executions
+        all_diversity_per_generation = []  # Store diversity per generation for all executions
+
+        start_time = time.time()  # Start timing
+        for execution in range(1, num_executions + 1):
             self.elitism_optimization()
             # Retrieve the best solution and its fitness value from the last generation
             best_individual = min(self.population_fitness, key=lambda x: x[1])
+            best_solution = best_individual[0]
+            best_fitness = best_individual[1]
+
+            # Store the result of this execution
+            self.ResultsOverall.append({
+                "BestSolution": best_solution,
+                "BestFitness": best_fitness
+            })
+
+            # Update the best result if this execution is better
+            if best_fitness < best_overall_fitness:
+                best_overall_fitness = best_fitness
+                self.BestResult = {
+                    "BestSolution": best_solution,
+                    "BestFitness": best_fitness
+                }
+
+            # Print progress information
+            elapsed_time = time.time() - start_time
+            print(f"Execution {execution}/{num_executions} completed. Best Fitness: {best_fitness:.6f}. Elapsed Time: {elapsed_time:.2f} seconds")
+
             best_solutions.append(best_individual[0])
             best_fitness_values.append(best_individual[1])
             best_chromosomes.append(best_individual[0])  # Store the best chromosome
@@ -96,22 +130,45 @@ class MainOptimizationScript:
                 if distance <= tolerance:
                     success_count += 1
 
+            all_best_fitness_per_generation.append(self.best_fitness_per_generation)
+            all_diversity_per_generation.append(self.diversity_per_generation)
+
         # Calculate performance metrics
+        avg_best_fitness = sum(result["BestFitness"] for result in self.ResultsOverall) / num_executions
+        success_count = sum(
+            1 for result in self.ResultsOverall
+            if optimal_solution is not None and sqrt(sum((a - b) ** 2 for a, b in zip(result["BestSolution"], optimal_solution))) <= tolerance
+        )
         success_rate = success_count / num_executions
-        avg_best_fitness = sum(best_fitness_values) / num_executions
         best_overall_solution = min(best_fitness_values)
         best_overall_chromosome = best_chromosomes[best_fitness_values.index(best_overall_solution)]
+
+        end_time = time.time()  # End timing
+        execution_time = end_time - start_time
+        print(f"Total Execution Time: {execution_time:.2f} seconds")
 
         print(f"Performance Metrics:")
         print(f"Success Rate: {success_rate * 100:.2f}%")
         print(f"Average Best Fitness: {avg_best_fitness:.6f}")
-        print(f"Best Solution Found: {best_overall_solution}")
-        print(f"Chromosome for Best Solution: {best_overall_chromosome}")
+        print(f"Best Solution Found: {self.BestResult['BestFitness']}")
+        print(f"Chromosome for Best Solution: {self.BestResult['BestSolution']}")
+
+        # Calculate aggregated metrics
+        avg_best_fitness_per_generation = np.mean(all_best_fitness_per_generation, axis=0)
+        std_best_fitness_per_generation = np.std(all_best_fitness_per_generation, axis=0)
+        avg_diversity_per_generation = np.mean(all_diversity_per_generation, axis=0)
+        std_diversity_per_generation = np.std(all_diversity_per_generation, axis=0)
+
+        # Plot aggregated metrics
+        self.plot_convergence_curve(avg_best_fitness_per_generation, std_best_fitness_per_generation)
+        self.plot_population_diversity(avg_diversity_per_generation, std_diversity_per_generation)
 
     def elitism_optimization(self):
         population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
         #Optimization loop
 
+        self.diversity_per_generation = []  # Reset diversity metrics
+        self.best_fitness_per_generation = []  # Reset best fitness metrics
         for idx in range(self.GENERATION_COUNT):
             #Evaluate fitness of the population
             population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
@@ -136,6 +193,13 @@ class MainOptimizationScript:
 
             # Update population
             population = [elite[0] for elite in elites] + [chromosome[0] for chromosome in new_population_fitness]
+
+            # Calculate and store diversity
+            diversity = np.std([chromosome for chromosome, _ in population_fitness])
+            self.diversity_per_generation.append(diversity)
+            # Store best fitness for convergence curve
+            best_fitness = min(population_fitness, key=lambda x: x[1])[1]
+            self.best_fitness_per_generation.append(best_fitness)
     
 
 
@@ -214,4 +278,41 @@ class MainOptimizationScript:
         X, Y = np.meshgrid(x, y)
         Z = self.evaluate_fitness([X, Y])
         ax.plot_surface(X, Y, Z, cmap='viridis')    
-        plt.show(block=False)        
+        plt.show(block=False)  # Allow script to continue
+        plt.pause(0.1)  # Ensure the figure is rendered
+
+    def plot_convergence_curve(self, avg_best_fitness, std_best_fitness):
+        """
+        Plot the aggregated convergence curve showing the average best fitness per generation.
+        """
+        plt.figure()
+        generations = range(len(avg_best_fitness))
+        plt.plot(generations, avg_best_fitness, label="Average Best Fitness")
+        plt.fill_between(generations, 
+                         avg_best_fitness - std_best_fitness, 
+                         avg_best_fitness + std_best_fitness, 
+                         color='blue', alpha=0.2, label="Std Dev")
+        plt.xlabel("Generation")
+        plt.ylabel("Fitness")
+        plt.title("Aggregated Convergence Curve")
+        plt.legend()
+        plt.show(block=False)  # Allow script to continue
+        plt.pause(0.1)  # Ensure the figure is rendered
+
+    def plot_population_diversity(self, avg_diversity, std_diversity):
+        """
+        Plot the aggregated diversity of the population over generations.
+        """
+        plt.figure()
+        generations = range(len(avg_diversity))
+        plt.plot(generations, avg_diversity, label="Average Diversity")
+        plt.fill_between(generations, 
+                         avg_diversity - std_diversity, 
+                         avg_diversity + std_diversity, 
+                         color='orange', alpha=0.2, label="Std Dev")
+        plt.xlabel("Generation")
+        plt.ylabel("Diversity (Standard Deviation)")
+        plt.title("Aggregated Population Diversity")
+        plt.legend()
+        plt.show(block=False)  # Allow script to continue
+        plt.pause(0.1)  # Ensure the figure is rendered
