@@ -10,15 +10,18 @@ from numpy import cos
 from numpy import e
 from numpy import pi
 import time  # Import for execution time measurement
+import os  # Import for file and directory handling
+import json  # Import for saving configuration as JSON
+from datetime import datetime  # Import for timestamp
 
 class MainOptimizationScript:
-    def __init__(self, FITNESS_FUNCTION_SELECTION):
+    def __init__(self, FITNESS_FUNCTION_SELECTION, IDENTIFIER=None):
         """
         Constructor to initialize the class attributes.
         """
         # Class Parameters
         self.ENABLE_FITNESS_FUNCTION_VISUALIZATION = False
-        self.ALLOWED_FITNESS_FUNCTIONS = ['Base', 'Akley', 'Custom']
+        self.ALLOWED_FITNESS_FUNCTIONS = ['Base', 'Akley', 'Drop-Wave','Levi']
         self.ResultsOverall = []  # Store performance data for all executions
         self.BestResult = None   # Store the best execution result
         self.diversity_per_generation = []  # Store diversity metrics
@@ -30,11 +33,11 @@ class MainOptimizationScript:
 
         # Initialize configuration parameters
         self.POPULATION_SIZE = 100
-        self.GENERATION_COUNT = 50
+        self.GENERATION_COUNT = 10
         
         self.CHROMOSOME_LENGTH = 2
-        self.LOWER_BOUND = -100
-        self.UPPER_BOUND = 100
+        self.LOWER_BOUND = -10
+        self.UPPER_BOUND = 10
         self.FITNESS_FUNCTION_SELECTION = FITNESS_FUNCTION_SELECTION
         self.SELECTION_METHOD = 'TournamentSelection'
         self.SELECTION_TOURNAMENT_SIZE = 10
@@ -44,6 +47,7 @@ class MainOptimizationScript:
         self.MUTATION_RATE = 0.5
         self.OPTIMIZATION_METHOD = 'Elitism'
         self.OPTIMIZATION_METHOD_NUMBER_ELITES = 10
+        self.IDENTIFIER = IDENTIFIER  # Optional identifier for result folder prefix
 
 
 
@@ -61,6 +65,21 @@ class MainOptimizationScript:
                 y = chromosome[1]
                 fitness_value = -20.0 * exp(-0.2 * sqrt(0.5 * (x**2 + y**2)))-exp(0.5 * (cos(2 * pi * x)+cos(2 * pi * y))) + e + 20
                 ENABLE_FITNESS_FUNCTION_VISUALIZATION = True
+            case 'Drop-Wave':
+                x = chromosome[0]
+                y = chromosome[1]
+                numerator = 1 + cos(12 * sqrt(x**2 + y**2))
+                denominator = 0.5 * (x**2 + y**2) + 2
+                fitness_value = - numerator / denominator
+                ENABLE_FITNESS_FUNCTION_VISUALIZATION = True
+            case 'Levi':
+                x = chromosome[0]
+                y = chromosome[1]
+                term1 = np.sin(3 * np.pi * x)**2
+                term2 = (x - 1)**2 * (1 + np.sin(3 * np.pi * y)**2)
+                term3 = (y - 1)**2 * (1 + np.sin(2 * np.pi * y)**2)
+                fitness_value = term1 + term2 + term3
+                ENABLE_FITNESS_FUNCTION_VISUALIZATION = True
             case _:
                 raise ValueError("Invalid FITNESS_FUNCTION_SELECTION")
         return fitness_value
@@ -74,7 +93,7 @@ class MainOptimizationScript:
         self.elitism_optimization()
 
 
-    def multiple_optimization(self, num_executions, optimal_solution=None, tolerance=1e-1):
+    def multiple_optimization(self, num_executions, optimal_solution=None, tolerance=1e-2):
         """
         Evaluate the performance of the optimization algorithm.
         :param num_executions: Number of times to run the optimization.
@@ -82,9 +101,8 @@ class MainOptimizationScript:
         :param tolerance: Tolerance for determining success in finding the optimal solution.
         """
         success_count = 0
-        best_solutions = []
-        best_fitness_values = []
-        best_chromosomes = []  # Store the best chromosomes
+        best_fitness_values = []  # Store best fitness values for each execution
+        optimal_points = []  # Store all optimal points found
 
         self.visualize_fitness_function()
         self.ResultsOverall = []  # Reset results for new executions
@@ -119,14 +137,12 @@ class MainOptimizationScript:
             elapsed_time = time.time() - start_time
             print(f"Execution {execution}/{num_executions} completed. Best Fitness: {best_fitness:.6f}. Elapsed Time: {elapsed_time:.2f} seconds")
 
-            best_solutions.append(best_individual[0])
-            best_fitness_values.append(best_individual[1])
-            best_chromosomes.append(best_individual[0])  # Store the best chromosome
+            best_fitness_values.append(best_fitness)
+            optimal_points.append(best_solution)  # Store the best chromosome (optimal point)
 
             # Check if the solution is within the tolerance of the optimal solution
             if optimal_solution is not None:
-                # Calculate Euclidean distance between the solution and the optimal solution
-                distance = sqrt(sum((a - b) ** 2 for a, b in zip(best_individual[0], optimal_solution)))
+                distance = sqrt(sum((a - b) ** 2 for a, b in zip(best_solution, optimal_solution)))
                 if distance <= tolerance:
                     success_count += 1
 
@@ -134,14 +150,8 @@ class MainOptimizationScript:
             all_diversity_per_generation.append(self.diversity_per_generation)
 
         # Calculate performance metrics
-        avg_best_fitness = sum(result["BestFitness"] for result in self.ResultsOverall) / num_executions
-        success_count = sum(
-            1 for result in self.ResultsOverall
-            if optimal_solution is not None and sqrt(sum((a - b) ** 2 for a, b in zip(result["BestSolution"], optimal_solution))) <= tolerance
-        )
+        avg_best_fitness = np.mean(best_fitness_values)
         success_rate = success_count / num_executions
-        best_overall_solution = min(best_fitness_values)
-        best_overall_chromosome = best_chromosomes[best_fitness_values.index(best_overall_solution)]
 
         end_time = time.time()  # End timing
         execution_time = end_time - start_time
@@ -162,6 +172,145 @@ class MainOptimizationScript:
         # Plot aggregated metrics
         self.plot_convergence_curve(avg_best_fitness_per_generation, std_best_fitness_per_generation)
         self.plot_population_diversity(avg_diversity_per_generation, std_diversity_per_generation)
+
+        # Calculate mean and standard deviation of optimal points
+        optimal_points = np.array(optimal_points)
+        mean_optimal_point = np.mean(optimal_points, axis=0)
+        std_optimal_point = np.std(optimal_points, axis=0)
+
+        print(f"Mean of Optimal Points: {mean_optimal_point}")
+        print(f"Standard Deviation of Optimal Points: {std_optimal_point}")
+
+        # Visualize the mean and standard deviation of optimal points
+        self.plot_optimal_points(optimal_points, mean_optimal_point, std_optimal_point)
+
+        # Save results, configuration, and figures
+        config = {
+            "POPULATION_SIZE": self.POPULATION_SIZE,
+            "GENERATION_COUNT": self.GENERATION_COUNT,
+            "CHROMOSOME_LENGTH": self.CHROMOSOME_LENGTH,
+            "LOWER_BOUND": self.LOWER_BOUND,
+            "UPPER_BOUND": self.UPPER_BOUND,
+            "FITNESS_FUNCTION_SELECTION": self.FITNESS_FUNCTION_SELECTION,
+            "SELECTION_METHOD": self.SELECTION_METHOD,
+            "SELECTION_TOURNAMENT_SIZE": self.SELECTION_TOURNAMENT_SIZE,
+            "CROSSOVER_METHOD": self.CROSSOVER_METHOD,
+            "CROSSOVER_RATE": self.CROSSOVER_RATE,
+            "MUTATION_METHOD": self.MUTATION_METHOD,
+            "MUTATION_RATE": self.MUTATION_RATE,
+            "OPTIMIZATION_METHOD": self.OPTIMIZATION_METHOD,
+            "OPTIMIZATION_METHOD_NUMBER_ELITES": self.OPTIMIZATION_METHOD_NUMBER_ELITES,
+            "NUM_EXECUTIONS": num_executions,
+            "OPTIMAL_SOLUTION": optimal_solution,
+            "TOLERANCE": tolerance
+        }
+
+        # Collect figures
+        figures = [
+            (plt.figure(2), "convergence_curve.png"),
+            (plt.figure(3), "population_diversity.png"),
+            (plt.figure(4), "optimal_points_distribution.png")
+        ]
+
+        # Calculate performance metrics
+        avg_best_fitness = np.mean(best_fitness_values)
+        success_rate = success_count / num_executions
+        performance_metrics = {
+            "Total Execution Time (s)": execution_time,
+            "Success Rate (%)": success_rate * 100,
+            "Average Best Fitness": avg_best_fitness,
+            "Best Solution Found": self.BestResult['BestFitness'],
+            "Chromosome for Best Solution": self.BestResult['BestSolution'],
+            "Mean of Optimal Points": mean_optimal_point.tolist(),  # Convert numpy array to list
+            "Standard Deviation of Optimal Points": std_optimal_point.tolist()  # Convert numpy array to list
+        }
+
+        # Prepare curve data and their standard deviations
+        curve_data = {
+            "convergence_curve": avg_best_fitness_per_generation,
+            "diversity_curve": avg_diversity_per_generation
+        }
+        curve_std_data = {
+            "convergence_curve": std_best_fitness_per_generation,
+            "diversity_curve": std_diversity_per_generation
+        }
+
+        # Save results, configuration, figures, performance metrics, curve data, and optimal points with their standard deviations
+        self.save_results(
+            self.ResultsOverall,
+            config,
+            figures,
+            performance_metrics,
+            curve_data,
+            optimal_points.tolist(),  # Convert numpy array to list for saving
+            curve_std_data,
+            std_optimal_point.tolist()  # Convert numpy array to list for saving
+        )
+
+    def save_results(self, results, config, figures, performance_metrics, curve_data, optimal_points, curve_std_data, optimal_points_std):
+        """
+        Save results, configuration, figures, performance metrics, curve data, and optimal points with their standard deviations to a timestamped folder.
+        :param results: List of results to save as CSV.
+        :param config: Dictionary of configuration parameters to save as JSON.
+        :param figures: List of tuples (figure, filename) to save as PNG.
+        :param performance_metrics: Dictionary of performance metrics to save as CSV.
+        :param curve_data: Dictionary of curve data (e.g., convergence, diversity) to save as CSV.
+        :param optimal_points: Array of optimal points to save as CSV.
+        :param curve_std_data: Dictionary of standard deviations for curve data to save as CSV.
+        :param optimal_points_std: Standard deviation of optimal points to save as CSV.
+        """
+        # Create a timestamped folder with optional IDENTIFIER prefix
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        folder_name = f"{self.IDENTIFIER}_" if self.IDENTIFIER else ""
+        results_dir = os.path.join("Results", f"{folder_name}{timestamp}")
+        os.makedirs(results_dir, exist_ok=True)
+
+        # Save results as CSV
+        results_csv_path = os.path.join(results_dir, "results.csv")
+        with open(results_csv_path, "w") as csv_file:
+            csv_file.write("Execution,BestFitness,BestSolution\n")
+            for i, result in enumerate(results, start=1):
+                csv_file.write(f"{i},{result['BestFitness']},{result['BestSolution']}\n")
+
+        # Save configuration as JSON (include IDENTIFIER)
+        config["IDENTIFIER"] = self.IDENTIFIER
+        config_json_path = os.path.join(results_dir, "config.json")
+        with open(config_json_path, "w") as json_file:
+            json.dump(config, json_file, indent=4)
+
+        # Save figures as PNG
+        for fig, filename in figures:
+            fig_path = os.path.join(results_dir, filename)
+            fig.savefig(fig_path)
+
+        # Save performance metrics as CSV
+        metrics_csv_path = os.path.join(results_dir, "performance_metrics.csv")
+        with open(metrics_csv_path, "w") as csv_file:
+            csv_file.write("Metric,Value\n")
+            for metric, value in performance_metrics.items():
+                csv_file.write(f"{metric},{value}\n")
+            
+            # Add configuration section
+            csv_file.write("\nCONFIGURATION\n")
+            for key, value in config.items():
+                csv_file.write(f"{key},{value}\n")
+
+        # Save curve data with standard deviations as CSV
+        for curve_name, data in curve_data.items():
+            curve_csv_path = os.path.join(results_dir, f"{curve_name}.csv")
+            with open(curve_csv_path, "w") as csv_file:
+                csv_file.write("Generation,Value,StdDev\n")  # Header
+                for i, (value, std) in enumerate(zip(data, curve_std_data[curve_name])):
+                    csv_file.write(f"{i},{value},{std}\n")  # Data with standard deviation
+
+        # Save optimal points distribution with standard deviation as CSV
+        optimal_points_csv_path = os.path.join(results_dir, "optimal_points_distribution.csv")
+        with open(optimal_points_csv_path, "w") as csv_file:
+            csv_file.write("X,Y,X_Std,Y_Std\n")  # Header
+            for point in optimal_points:
+                csv_file.write(f"{point[0]},{point[1]},{optimal_points_std[0]},{optimal_points_std[1]}\n")
+
+        print(f"Results saved in: {results_dir}")
 
     def elitism_optimization(self):
         population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
@@ -265,7 +414,7 @@ class MainOptimizationScript:
         """
         Visualize the fitness function in 3D.
         """
-        if self.ENABLE_FITNESS_FUNCTION_VISUALIZATION:
+        if not self.ENABLE_FITNESS_FUNCTION_VISUALIZATION:
             print("Fitness function visualization is disabled.")
             return
         fig = plt.figure()
@@ -277,9 +426,9 @@ class MainOptimizationScript:
         y = np.linspace(self.LOWER_BOUND, self.UPPER_BOUND, 100)
         X, Y = np.meshgrid(x, y)
         Z = self.evaluate_fitness([X, Y])
-        ax.plot_surface(X, Y, Z, cmap='viridis')    
-        plt.show(block=False)  # Allow script to continue
-        plt.pause(0.1)  # Ensure the figure is rendered
+        ax.plot_surface(X, Y, Z, cmap='viridis')
+        plt.title("Fitness Function Visualization")
+        plt.show(block=False)  # Allow script to continue without blocking
 
     def plot_convergence_curve(self, avg_best_fitness, std_best_fitness):
         """
@@ -287,7 +436,7 @@ class MainOptimizationScript:
         """
         plt.figure()
         generations = range(len(avg_best_fitness))
-        plt.plot(generations, avg_best_fitness, label="Average Best Fitness")
+        plt.plot(generations, avg_best_fitness, label="Average Best Fitness", color='blue')
         plt.fill_between(generations, 
                          avg_best_fitness - std_best_fitness, 
                          avg_best_fitness + std_best_fitness, 
@@ -296,8 +445,9 @@ class MainOptimizationScript:
         plt.ylabel("Fitness")
         plt.title("Aggregated Convergence Curve")
         plt.legend()
-        plt.show(block=False)  # Allow script to continue
-        plt.pause(0.1)  # Ensure the figure is rendered
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.show(block=False)  # Allow script to continue without blocking
 
     def plot_population_diversity(self, avg_diversity, std_diversity):
         """
@@ -305,7 +455,7 @@ class MainOptimizationScript:
         """
         plt.figure()
         generations = range(len(avg_diversity))
-        plt.plot(generations, avg_diversity, label="Average Diversity")
+        plt.plot(generations, avg_diversity, label="Average Diversity", color='orange')
         plt.fill_between(generations, 
                          avg_diversity - std_diversity, 
                          avg_diversity + std_diversity, 
@@ -314,5 +464,22 @@ class MainOptimizationScript:
         plt.ylabel("Diversity (Standard Deviation)")
         plt.title("Aggregated Population Diversity")
         plt.legend()
-        plt.show(block=False)  # Allow script to continue
-        plt.pause(0.1)  # Ensure the figure is rendered
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.show(block=False)  # Allow script to continue without blocking
+
+    def plot_optimal_points(self, optimal_points, mean_point, std_point):
+        """
+        Plot the distribution of optimal points and their mean and standard deviation.
+        """
+        plt.figure()
+        plt.scatter(optimal_points[:, 0], optimal_points[:, 1], label="Optimal Points", alpha=0.6, color='blue')
+        plt.errorbar(mean_point[0], mean_point[1], xerr=std_point[0], yerr=std_point[1], 
+                     fmt='o', color='red', label="Mean ± Std Dev", capsize=5)
+        plt.xlabel("X Coordinate")
+        plt.ylabel("Y Coordinate")
+        plt.title("Optimal Points Distribution")
+        plt.legend()
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.show(block=False)  # Allow script to continue without blocking
