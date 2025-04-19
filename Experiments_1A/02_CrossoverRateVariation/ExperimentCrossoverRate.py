@@ -43,6 +43,7 @@ def main():
     plot_execution_time_vs_crossover_rate(data, results_dir)
     plot_convergence_curves(results_dir)
     plot_diversity_curves(results_dir)
+    plot_diversity_vs_crossover_rate(data, results_dir)  # New function to plot diversity vs. crossover rate
     plot_success_rate_vs_crossover_rate(data, results_dir, optimal_solution=optimal_solution)
 
 
@@ -167,27 +168,74 @@ def plot_convergence_curves(results_dir):
 
 def plot_diversity_curves(results_dir):
     """
-    Plot diversity curves for each crossover rate.
+    Plot diversity curves (standard deviation and Euclidean distance) for each crossover rate.
     :param results_dir: Path to the directory containing experiment results.
     """
     plt.figure()
     for folder in sorted(os.listdir(results_dir)):  # Sort folders for consistent order
         folder_path = os.path.join(results_dir, folder)
         if os.path.isdir(folder_path):
-            diversity_path = os.path.join(folder_path, "diversity_curve.csv")
+            diversity_path = os.path.join(folder_path, "diversity_metrics.csv")
             if os.path.exists(diversity_path):
                 df = pd.read_csv(diversity_path)
                 generations = df["Generation"]
-                diversity = df["Value"]
-                plt.plot(generations, diversity, label=folder)
-    plt.title("Diversity Curves")
+                std_dev_diversity = df["StdDevDiversity"]
+                euclidean_diversity = df["EuclideanDiversity"]
+
+                # Plot standard deviation diversity
+                plt.plot(generations, std_dev_diversity, label=f"{folder} (Std Dev)", linestyle="--", alpha=0.8)
+
+                # Plot Euclidean diversity
+                plt.plot(generations, euclidean_diversity, label=f"{folder} (Euclidean)", alpha=0.8)
+
+    plt.title("Diversity Curves (Std Dev and Euclidean) for Different Crossover Rates")
     plt.xlabel("Generation")
     plt.ylabel("Diversity")
-    plt.legend(title="Crossover Rate", loc="upper right")
+    plt.legend(title="Crossover Rate", loc="upper right", fontsize="small")
     plt.grid(linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "diversity_curves.png"))
-    plt.show(block=False)
+
+def plot_diversity_vs_crossover_rate(data, results_dir):
+    """
+    Plot the average diversity (standard deviation and Euclidean distance) vs. crossover rate.
+    :param data: DataFrame containing performance metrics.
+    :param results_dir: Path to the directory containing experiment results.
+    """
+    diversity_data = []
+
+    # Extract crossover rates and diversity metrics from the data
+    crossover_rates = data[data["Metric"] == "CROSSOVER_RATE"][["Experiment", "Value"]].copy()
+    crossover_rates.rename(columns={"Value": "CrossoverRate"}, inplace=True)
+    crossover_rates["CrossoverRate"] = crossover_rates["CrossoverRate"].astype(float)
+
+    for folder in sorted(os.listdir(results_dir)):  # Sort folders for consistent order
+        folder_path = os.path.join(results_dir, folder)
+        if os.path.isdir(folder_path):
+            diversity_path = os.path.join(folder_path, "diversity_metrics.csv")
+            if os.path.exists(diversity_path):
+                df = pd.read_csv(diversity_path)
+                avg_std_dev = df["StdDevDiversity"].mean()  # Average standard deviation diversity
+                avg_euclidean = df["EuclideanDiversity"].mean()  # Average Euclidean diversity
+
+                # Get the crossover rate for the current experiment
+                crossover_rate = crossover_rates.loc[crossover_rates["Experiment"] == folder, "CrossoverRate"].iloc[0]
+                diversity_data.append({"CrossoverRate": crossover_rate, "AvgStdDev": avg_std_dev, "AvgEuclidean": avg_euclidean})
+
+    # Convert to DataFrame for plotting
+    diversity_df = pd.DataFrame(diversity_data).sort_values(by="CrossoverRate")
+
+    # Plot standard deviation diversity
+    plt.figure()
+    plt.plot(diversity_df["CrossoverRate"], diversity_df["AvgStdDev"], marker="o", label="Std Dev Diversity", color="blue")
+    plt.plot(diversity_df["CrossoverRate"], diversity_df["AvgEuclidean"], marker="o", label="Euclidean Diversity", color="green")
+    plt.title("Average Diversity vs. Crossover Rate")
+    plt.xlabel("Crossover Rate")
+    plt.ylabel("Diversity")
+    plt.legend()
+    plt.grid(linestyle="--", alpha=0.7)
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, "diversity_vs_crossover_rate.png"))
 
 def plot_success_rate_vs_crossover_rate(data, results_dir, optimal_solution=None, tolerance=1e-2):
     """

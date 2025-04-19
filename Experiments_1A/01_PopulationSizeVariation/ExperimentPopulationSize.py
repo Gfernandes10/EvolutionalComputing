@@ -43,7 +43,8 @@ def main():
     plot_execution_time_vs_population(data, results_dir)
     plot_convergence_curves(results_dir)
     plot_diversity_curves(results_dir)
-    plot_success_rate_vs_population(data, results_dir, optimal_solution=[1, 1])
+    plot_diversity_vs_population(data, results_dir)  
+    plot_success_rate_vs_population(data, results_dir, optimal_solution=optimal_solution)
 
 
 def load_performance_metrics(results_dir):
@@ -168,23 +169,30 @@ def plot_convergence_curves(results_dir):
 
 def plot_diversity_curves(results_dir):
     """
-    Plot diversity curves for each population size.
+    Plot diversity curves (standard deviation and Euclidean distance) for each population size.
     :param results_dir: Path to the directory containing experiment results.
     """
     plt.figure()
     for folder in sorted(os.listdir(results_dir)):  # Sort folders for consistent order
         folder_path = os.path.join(results_dir, folder)
         if os.path.isdir(folder_path):
-            diversity_path = os.path.join(folder_path, "diversity_curve.csv")
+            diversity_path = os.path.join(folder_path, "diversity_metrics.csv")
             if os.path.exists(diversity_path):
                 df = pd.read_csv(diversity_path)
                 generations = df["Generation"]
-                diversity = df["Value"]
-                plt.plot(generations, diversity, label=folder)
-    plt.title("Diversity Curves")
+                std_dev_diversity = df["StdDevDiversity"]
+                euclidean_diversity = df["EuclideanDiversity"]
+
+                # Plot standard deviation diversity
+                plt.plot(generations, std_dev_diversity, label=f"{folder} (Std Dev)", linestyle="--", alpha=0.8)
+
+                # Plot Euclidean diversity
+                plt.plot(generations, euclidean_diversity, label=f"{folder} (Euclidean)", alpha=0.8)
+
+    plt.title("Diversity Curves (Std Dev and Euclidean) for Different Population Sizes")
     plt.xlabel("Generation")
     plt.ylabel("Diversity")
-    plt.legend(title="Population Size", loc="upper right")
+    plt.legend(title="Population Size", loc="upper right", fontsize="small")
     plt.grid(linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "diversity_curves.png"))
@@ -222,6 +230,47 @@ def plot_success_rate_vs_population(data, results_dir, optimal_solution=None, to
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "success_rate_vs_population.png"))
     plt.show(block=False)
+
+def plot_diversity_vs_population(data, results_dir):
+    """
+    Plot the average diversity (standard deviation and Euclidean distance) vs. population size.
+    :param data: DataFrame containing performance metrics.
+    :param results_dir: Path to the directory containing experiment results.
+    """
+    diversity_data = []
+
+    # Extract population sizes and diversity metrics from the data
+    population_sizes = data[data["Metric"] == "POPULATION_SIZE"][["Experiment", "Value"]].copy()
+    population_sizes.rename(columns={"Value": "PopulationSize"}, inplace=True)
+    population_sizes["PopulationSize"] = population_sizes["PopulationSize"].astype(int)
+
+    for folder in sorted(os.listdir(results_dir)):  # Sort folders for consistent order
+        folder_path = os.path.join(results_dir, folder)
+        if os.path.isdir(folder_path):
+            diversity_path = os.path.join(folder_path, "diversity_metrics.csv")
+            if os.path.exists(diversity_path):
+                df = pd.read_csv(diversity_path)
+                avg_std_dev = df["StdDevDiversity"].mean()  # Average standard deviation diversity
+                avg_euclidean = df["EuclideanDiversity"].mean()  # Average Euclidean diversity
+
+                # Get the population size for the current experiment
+                population_size = population_sizes.loc[population_sizes["Experiment"] == folder, "PopulationSize"].iloc[0]
+                diversity_data.append({"PopulationSize": population_size, "AvgStdDev": avg_std_dev, "AvgEuclidean": avg_euclidean})
+
+    # Convert to DataFrame for plotting
+    diversity_df = pd.DataFrame(diversity_data).sort_values(by="PopulationSize")
+
+    # Plot standard deviation diversity
+    plt.figure()
+    plt.plot(diversity_df["PopulationSize"], diversity_df["AvgStdDev"], marker="o", label="Std Dev Diversity", color="blue")
+    plt.plot(diversity_df["PopulationSize"], diversity_df["AvgEuclidean"], marker="o", label="Euclidean Diversity", color="green")
+    plt.title("Average Diversity vs. Population Size")
+    plt.xlabel("Population Size")
+    plt.ylabel("Diversity")
+    plt.legend()
+    plt.grid(linestyle="--", alpha=0.7)
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, "diversity_vs_population.png"))
 
 
 if __name__ == "__main__":
