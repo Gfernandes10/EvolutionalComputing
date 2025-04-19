@@ -26,6 +26,7 @@ class MainOptimizationScript:
         self.BestResult = None   # Store the best execution result
         self.diversity_per_generation = []  # Store diversity metrics
         self.best_fitness_per_generation = []  # Store best fitness per generation
+        self.figures = []  # List to store figures for saving
 
         # Validate FITNESS_FUNCTION_SELECTION
         if FITNESS_FUNCTION_SELECTION not in self.ALLOWED_FITNESS_FUNCTIONS:
@@ -33,11 +34,10 @@ class MainOptimizationScript:
 
         # Initialize configuration parameters
         self.POPULATION_SIZE = 100
-        self.GENERATION_COUNT = 10
-        
+        self.GENERATION_COUNT = 10        
         self.CHROMOSOME_LENGTH = 2
-        self.LOWER_BOUND = -10
-        self.UPPER_BOUND = 10
+        self.LOWER_BOUND = -100
+        self.UPPER_BOUND = 100
         self.FITNESS_FUNCTION_SELECTION = FITNESS_FUNCTION_SELECTION
         self.SELECTION_METHOD = 'TournamentSelection'
         self.SELECTION_TOURNAMENT_SIZE = 10
@@ -205,13 +205,6 @@ class MainOptimizationScript:
             "TOLERANCE": tolerance
         }
 
-        # Collect figures
-        figures = [
-            (plt.figure(2), "convergence_curve.png"),
-            (plt.figure(3), "population_diversity.png"),
-            (plt.figure(4), "optimal_points_distribution.png")
-        ]
-
         # Calculate performance metrics
         avg_best_fitness = np.mean(best_fitness_values)
         success_rate = success_count / num_executions
@@ -239,7 +232,6 @@ class MainOptimizationScript:
         self.save_results(
             self.ResultsOverall,
             config,
-            figures,
             performance_metrics,
             curve_data,
             optimal_points.tolist(),  # Convert numpy array to list for saving
@@ -247,70 +239,6 @@ class MainOptimizationScript:
             std_optimal_point.tolist()  # Convert numpy array to list for saving
         )
 
-    def save_results(self, results, config, figures, performance_metrics, curve_data, optimal_points, curve_std_data, optimal_points_std):
-        """
-        Save results, configuration, figures, performance metrics, curve data, and optimal points with their standard deviations to a timestamped folder.
-        :param results: List of results to save as CSV.
-        :param config: Dictionary of configuration parameters to save as JSON.
-        :param figures: List of tuples (figure, filename) to save as PNG.
-        :param performance_metrics: Dictionary of performance metrics to save as CSV.
-        :param curve_data: Dictionary of curve data (e.g., convergence, diversity) to save as CSV.
-        :param optimal_points: Array of optimal points to save as CSV.
-        :param curve_std_data: Dictionary of standard deviations for curve data to save as CSV.
-        :param optimal_points_std: Standard deviation of optimal points to save as CSV.
-        """
-        # Create a timestamped folder with optional IDENTIFIER prefix
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        folder_name = f"{self.IDENTIFIER}_" if self.IDENTIFIER else ""
-        results_dir = os.path.join("Results", f"{folder_name}{timestamp}")
-        os.makedirs(results_dir, exist_ok=True)
-
-        # Save results as CSV
-        results_csv_path = os.path.join(results_dir, "results.csv")
-        with open(results_csv_path, "w") as csv_file:
-            csv_file.write("Execution,BestFitness,BestSolution\n")
-            for i, result in enumerate(results, start=1):
-                csv_file.write(f"{i},{result['BestFitness']},{result['BestSolution']}\n")
-
-        # Save configuration as JSON (include IDENTIFIER)
-        config["IDENTIFIER"] = self.IDENTIFIER
-        config_json_path = os.path.join(results_dir, "config.json")
-        with open(config_json_path, "w") as json_file:
-            json.dump(config, json_file, indent=4)
-
-        # Save figures as PNG
-        for fig, filename in figures:
-            fig_path = os.path.join(results_dir, filename)
-            fig.savefig(fig_path)
-
-        # Save performance metrics as CSV
-        metrics_csv_path = os.path.join(results_dir, "performance_metrics.csv")
-        with open(metrics_csv_path, "w") as csv_file:
-            csv_file.write("Metric,Value\n")
-            for metric, value in performance_metrics.items():
-                csv_file.write(f"{metric},{value}\n")
-            
-            # Add configuration section
-            csv_file.write("\nCONFIGURATION\n")
-            for key, value in config.items():
-                csv_file.write(f"{key},{value}\n")
-
-        # Save curve data with standard deviations as CSV
-        for curve_name, data in curve_data.items():
-            curve_csv_path = os.path.join(results_dir, f"{curve_name}.csv")
-            with open(curve_csv_path, "w") as csv_file:
-                csv_file.write("Generation,Value,StdDev\n")  # Header
-                for i, (value, std) in enumerate(zip(data, curve_std_data[curve_name])):
-                    csv_file.write(f"{i},{value},{std}\n")  # Data with standard deviation
-
-        # Save optimal points distribution with standard deviation as CSV
-        optimal_points_csv_path = os.path.join(results_dir, "optimal_points_distribution.csv")
-        with open(optimal_points_csv_path, "w") as csv_file:
-            csv_file.write("X,Y,X_Std,Y_Std\n")  # Header
-            for point in optimal_points:
-                csv_file.write(f"{point[0]},{point[1]},{optimal_points_std[0]},{optimal_points_std[1]}\n")
-
-        print(f"Results saved in: {results_dir}")
 
     def elitism_optimization(self):
         population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
@@ -417,7 +345,8 @@ class MainOptimizationScript:
         if not self.ENABLE_FITNESS_FUNCTION_VISUALIZATION:
             print("Fitness function visualization is disabled.")
             return
-        fig = plt.figure()
+        fig = plt.figure(1)
+        plt.clf()
         ax = fig.add_subplot(111, projection='3d')
         ax.set_xlabel('x')
         ax.set_ylabel('y')
@@ -434,7 +363,7 @@ class MainOptimizationScript:
         """
         Plot the aggregated convergence curve showing the average best fitness per generation.
         """
-        plt.figure()
+        fig = plt.figure()  # Create a new figure
         generations = range(len(avg_best_fitness))
         plt.plot(generations, avg_best_fitness, label="Average Best Fitness", color='blue')
         plt.fill_between(generations, 
@@ -447,13 +376,13 @@ class MainOptimizationScript:
         plt.legend()
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.tight_layout()
-        plt.show(block=False)  # Allow script to continue without blocking
+        self.figures.append((fig, "convergence_curve.png"))  # Store the figure and filename
 
     def plot_population_diversity(self, avg_diversity, std_diversity):
         """
         Plot the aggregated diversity of the population over generations.
         """
-        plt.figure()
+        fig = plt.figure()  # Create a new figure
         generations = range(len(avg_diversity))
         plt.plot(generations, avg_diversity, label="Average Diversity", color='orange')
         plt.fill_between(generations, 
@@ -466,13 +395,13 @@ class MainOptimizationScript:
         plt.legend()
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.tight_layout()
-        plt.show(block=False)  # Allow script to continue without blocking
+        self.figures.append((fig, "population_diversity.png"))  # Store the figure and filename
 
     def plot_optimal_points(self, optimal_points, mean_point, std_point):
         """
         Plot the distribution of optimal points and their mean and standard deviation.
         """
-        plt.figure()
+        fig = plt.figure()  # Create a new figure
         plt.scatter(optimal_points[:, 0], optimal_points[:, 1], label="Optimal Points", alpha=0.6, color='blue')
         plt.errorbar(mean_point[0], mean_point[1], xerr=std_point[0], yerr=std_point[1], 
                      fmt='o', color='red', label="Mean ± Std Dev", capsize=5)
@@ -482,4 +411,70 @@ class MainOptimizationScript:
         plt.legend()
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.tight_layout()
-        plt.show(block=False)  # Allow script to continue without blocking
+        self.figures.append((fig, "optimal_points_distribution.png"))  # Store the figure and filename
+        
+    def save_results(self, results, config, performance_metrics, curve_data, optimal_points, curve_std_data, optimal_points_std):
+        """
+        Save results, configuration, figures, performance metrics, curve data, and optimal points with their standard deviations to a timestamped folder.
+        """
+        folder_name = f"{self.IDENTIFIER}_" if self.IDENTIFIER else ""
+        # Determine the base directory for saving results
+        if hasattr(self, 'RESULTS_BASE_DIR') and self.RESULTS_BASE_DIR:
+            base_dir = self.RESULTS_BASE_DIR
+            results_dir = os.path.join(base_dir, f"{folder_name}")
+        else:
+            base_dir = "Results"  # Default directory
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            results_dir = os.path.join(base_dir, f"{folder_name}{timestamp}")
+
+        # Create the results directory if it doesn't exist
+        os.makedirs(results_dir, exist_ok=True)
+
+        # Save results as CSV
+        results_csv_path = os.path.join(results_dir, "results.csv")
+        with open(results_csv_path, "w") as csv_file:
+            csv_file.write("Execution,BestFitness,BestSolution\n")
+            for i, result in enumerate(results, start=1):
+                csv_file.write(f"{i},{result['BestFitness']},{result['BestSolution']}\n")
+
+        # Save configuration as JSON
+        config["IDENTIFIER"] = self.IDENTIFIER
+        config_json_path = os.path.join(results_dir, "config.json")
+        with open(config_json_path, "w") as json_file:
+            json.dump(config, json_file, indent=4)
+
+        # Save figures as PNG
+        for fig, filename in self.figures:
+            fig_path = os.path.join(results_dir, filename)
+            os.makedirs(os.path.dirname(fig_path), exist_ok=True)  # Ensure the directory exists
+            fig.savefig(fig_path)
+            plt.close(fig)  # Close the figure after saving
+
+        # Save performance metrics as CSV
+        metrics_csv_path = os.path.join(results_dir, "performance_metrics.csv")
+        with open(metrics_csv_path, "w") as csv_file:
+            csv_file.write("Metric,Value\n")
+            for metric, value in performance_metrics.items():
+                csv_file.write(f"{metric},{value}\n")
+            
+            # Add configuration section
+            csv_file.write("\nCONFIGURATION\n")
+            for key, value in config.items():
+                csv_file.write(f"{key},{value}\n")
+
+        # Save curve data with standard deviations as CSV
+        for curve_name, data in curve_data.items():
+            curve_csv_path = os.path.join(results_dir, f"{curve_name}.csv")
+            with open(curve_csv_path, "w") as csv_file:
+                csv_file.write("Generation,Value,StdDev\n")  # Header
+                for i, (value, std) in enumerate(zip(data, curve_std_data[curve_name])):
+                    csv_file.write(f"{i},{value},{std}\n")  # Data with standard deviation
+
+        # Save optimal points distribution with standard deviation as CSV
+        optimal_points_csv_path = os.path.join(results_dir, "optimal_points_distribution.csv")
+        with open(optimal_points_csv_path, "w") as csv_file:
+            csv_file.write("X,Y,X_Std,Y_Std\n")  # Header
+            for point in optimal_points:
+                csv_file.write(f"{point[0]},{point[1]},{optimal_points_std[0]},{optimal_points_std[1]}\n")
+
+        print(f"Results saved in: {results_dir}")
