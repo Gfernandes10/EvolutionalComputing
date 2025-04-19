@@ -13,6 +13,7 @@ import time  # Import for execution time measurement
 import os  # Import for file and directory handling
 import json  # Import for saving configuration as JSON
 from datetime import datetime  # Import for timestamp
+from scipy.spatial.distance import pdist  # Import for optimized pairwise distances
 
 class MainOptimizationScript:
     def __init__(self, FITNESS_FUNCTION_SELECTION, IDENTIFIER=None):
@@ -184,6 +185,9 @@ class MainOptimizationScript:
         # Visualize the mean and standard deviation of optimal points
         self.plot_optimal_points(optimal_points, mean_optimal_point, std_optimal_point)
 
+        # Call the new plot method in `multiple_optimization` after calculating aggregated metrics
+        self.plot_diversity_metrics(avg_diversity_per_generation, self.euclidean_diversity_per_generation)
+        
         # Save results, configuration, and figures
         config = {
             "POPULATION_SIZE": self.POPULATION_SIZE,
@@ -220,12 +224,10 @@ class MainOptimizationScript:
 
         # Prepare curve data and their standard deviations
         curve_data = {
-            "convergence_curve": avg_best_fitness_per_generation,
-            "diversity_curve": avg_diversity_per_generation
+            "convergence_curve": avg_best_fitness_per_generation
         }
         curve_std_data = {
-            "convergence_curve": std_best_fitness_per_generation,
-            "diversity_curve": std_diversity_per_generation
+            "convergence_curve": std_best_fitness_per_generation
         }
 
         # Save results, configuration, figures, performance metrics, curve data, and optimal points with their standard deviations
@@ -239,13 +241,16 @@ class MainOptimizationScript:
             std_optimal_point.tolist()  # Convert numpy array to list for saving
         )
 
+        
+        
+
 
     def elitism_optimization(self):
         population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
         #Optimization loop
-
+        self.best_fitness_per_generation = []
         self.diversity_per_generation = []  # Reset diversity metrics
-        self.best_fitness_per_generation = []  # Reset best fitness metrics
+        self.euclidean_diversity_per_generation = []  # Store Euclidean diversity metrics
         for idx in range(self.GENERATION_COUNT):
             #Evaluate fitness of the population
             population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
@@ -271,9 +276,19 @@ class MainOptimizationScript:
             # Update population
             population = [elite[0] for elite in elites] + [chromosome[0] for chromosome in new_population_fitness]
 
-            # Calculate and store diversity
-            diversity = np.std([chromosome for chromosome, _ in population_fitness])
+            # Calculate and store diversity (standard deviation)
+            gene_matrix = np.array([chromosome for chromosome, _ in population_fitness])  # Extract genes into a matrix
+            diversity = np.mean(np.std(gene_matrix, axis=0))  # Calculate mean of standard deviations across dimensions
             self.diversity_per_generation.append(diversity)
+
+            # Calculate and store diversity (Euclidean distance)
+            if len(gene_matrix) > 1:  # Ensure there are at least two chromosomes
+                euclidean_distances = pdist(gene_matrix, metric='euclidean')  # Efficient pairwise distances
+                euclidean_diversity = np.mean(euclidean_distances)
+            else:
+                euclidean_diversity = 0  # No diversity if there's only one chromosome
+            self.euclidean_diversity_per_generation.append(euclidean_diversity)
+
             # Store best fitness for convergence curve
             best_fitness = min(population_fitness, key=lambda x: x[1])[1]
             self.best_fitness_per_generation.append(best_fitness)
@@ -412,6 +427,23 @@ class MainOptimizationScript:
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.tight_layout()
         self.figures.append((fig, "optimal_points_distribution.png"))  # Store the figure and filename
+
+    def plot_diversity_metrics(self, std_diversity, euclidean_diversity):
+        """
+        Plot the diversity metrics (standard deviation and Euclidean distance) over generations.
+        """
+        fig = plt.figure()  # Create a new figure
+        generations = range(len(std_diversity))
+        plt.plot(generations, std_diversity, label="Diversity (Std Dev)", color='blue')
+        plt.plot(generations, euclidean_diversity, label="Diversity (Euclidean)", color='green')
+        plt.xlabel("Generation")
+        plt.ylabel("Diversity")
+        plt.title("Diversity Metrics Over Generations")
+        plt.legend()
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        self.figures.append((fig, "diversity_metrics.png"))  # Store the figure and filename
+        # plt.show()  # Display the plot
         
     def save_results(self, results, config, performance_metrics, curve_data, optimal_points, curve_std_data, optimal_points_std):
         """
@@ -476,5 +508,13 @@ class MainOptimizationScript:
             csv_file.write("X,Y,X_Std,Y_Std\n")  # Header
             for point in optimal_points:
                 csv_file.write(f"{point[0]},{point[1]},{optimal_points_std[0]},{optimal_points_std[1]}\n")
+
+        # Save diversity metrics (standard deviation and Euclidean distance) as CSV
+        diversity_csv_path = os.path.join(results_dir, "diversity_metrics.csv")
+        with open(diversity_csv_path, "w") as csv_file:
+            csv_file.write("Generation,StdDevDiversity,EuclideanDiversity\n")  # Header
+            for generation, (std_dev, euclidean) in enumerate(zip(self.diversity_per_generation, self.euclidean_diversity_per_generation)):
+                csv_file.write(f"{generation},{std_dev},{euclidean}\n")  # Data for each generation
+
 
         print(f"Results saved in: {results_dir}")

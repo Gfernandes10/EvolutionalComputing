@@ -12,7 +12,7 @@ def main():
     # Define the mutation rates to test
     mutation_rates = [0.1, 0.3, 0.5, 0.7, 0.9]
     fitness_function = 'Drop-Wave'  # Example fitness function
-    num_executions = 20  # Number of executions for each mutation rate
+    num_executions = 100  # Number of executions for each mutation rate
     optimal_solution = [0, 0]  # Known optimal solution for Drop-Wave
 
     # Define the results directory
@@ -29,12 +29,12 @@ def main():
         )
         OptimizationObject.MUTATION_RATE = rate
         OptimizationObject.RESULTS_BASE_DIR = results_dir
-        OptimizationObject.GENERATION_COUNT = 100
+        OptimizationObject.GENERATION_COUNT = 30
         OptimizationObject.multiple_optimization(num_executions=num_executions, optimal_solution=optimal_solution)
 
     # Load results and generate plots
     data = load_performance_metrics(results_dir)
-    if data.empty:
+    if (data.empty):
         print("No performance metrics found.")
         return
 
@@ -43,6 +43,7 @@ def main():
     plot_execution_time_vs_mutation_rate(data, results_dir)
     plot_convergence_curves(results_dir)
     plot_diversity_curves(results_dir)
+    plot_diversity_vs_mutation_rate(data, results_dir)  # New function to plot diversity vs. mutation rate
     plot_success_rate_vs_mutation_rate(data, results_dir, optimal_solution=optimal_solution)
 
 
@@ -95,7 +96,6 @@ def plot_fitness_vs_mutation_rate(data, results_dir):
     plt.grid(axis="y", linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "fitness_vs_mutation_rate.png"))
-    plt.show(block=False)
 
 def plot_execution_time_vs_mutation_rate(data, results_dir):
     """
@@ -125,7 +125,6 @@ def plot_execution_time_vs_mutation_rate(data, results_dir):
     plt.grid(axis="y", linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "execution_time_vs_mutation_rate.png"))
-    plt.show(block=False)
 
 def plot_convergence_curves(results_dir):
     """
@@ -138,56 +137,64 @@ def plot_convergence_curves(results_dir):
         if os.path.isdir(folder_path):
             convergence_path = os.path.join(folder_path, "convergence_curve.csv")
             if os.path.exists(convergence_path):
-                df = pd.read_csv(convergence_path)
-                generations = df["Generation"]
-                avg_convergence = df["Value"]
-                std_convergence = df["StdDev"] if "StdDev" in df.columns else None
+                try:
+                    df = pd.read_csv(convergence_path)
+                    generations = df["Generation"]
+                    avg_convergence = df["Value"]
+                    std_convergence = df["StdDev"] if "StdDev" in df.columns else None
 
-                # Plot the average convergence curve
-                plt.plot(generations, avg_convergence, label=f"{folder} (Avg)", alpha=0.8)
+                    # Plot the average convergence curve
+                    plt.plot(generations, avg_convergence, label=f"{folder} (Avg)", alpha=0.8)
 
-                # Plot the standard deviation as a shaded area
-                if std_convergence is not None:
-                    plt.fill_between(
-                        generations,
-                        avg_convergence - std_convergence,
-                        avg_convergence + std_convergence,
-                        alpha=0.2,
-                        label=f"{folder} (Std Dev)"
-                    )
+                    # Plot the standard deviation as a shaded area
+                    if std_convergence is not None:
+                        plt.fill_between(
+                            generations,
+                            avg_convergence - std_convergence,
+                            avg_convergence + std_convergence,
+                            alpha=0.2,
+                            label=f"{folder} (Std Dev)"
+                        )
+                except Exception as e:
+                    print(f"Error processing {convergence_path}: {e}")
 
     plt.title("Convergence Curves for Different Mutation Rates")
     plt.xlabel("Generation")
     plt.ylabel("Fitness")
-    plt.legend(title="Mutation Rate", loc="upper right")
+    plt.legend(title="Mutation Rate", loc="upper right", fontsize="small")
     plt.grid(linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "convergence_curves_all_mutation_rates.png"))
-    plt.show(block=False)
 
 def plot_diversity_curves(results_dir):
     """
-    Plot diversity curves for each mutation rate.
+    Plot diversity curves (standard deviation and Euclidean distance) for each mutation rate.
     :param results_dir: Path to the directory containing experiment results.
     """
     plt.figure()
     for folder in sorted(os.listdir(results_dir)):  # Sort folders for consistent order
         folder_path = os.path.join(results_dir, folder)
         if os.path.isdir(folder_path):
-            diversity_path = os.path.join(folder_path, "diversity_curve.csv")
+            diversity_path = os.path.join(folder_path, "diversity_metrics.csv")
             if os.path.exists(diversity_path):
                 df = pd.read_csv(diversity_path)
                 generations = df["Generation"]
-                diversity = df["Value"]
-                plt.plot(generations, diversity, label=folder)
-    plt.title("Diversity Curves")
+                std_dev_diversity = df["StdDevDiversity"]
+                euclidean_diversity = df["EuclideanDiversity"]
+
+                # Plot standard deviation diversity
+                plt.plot(generations, std_dev_diversity, label=f"{folder} (Std Dev)", linestyle="--", alpha=0.8)
+
+                # Plot Euclidean diversity
+                plt.plot(generations, euclidean_diversity, label=f"{folder} (Euclidean)", alpha=0.8)
+
+    plt.title("Diversity Curves (Std Dev and Euclidean) for Different Mutation Rates")
     plt.xlabel("Generation")
     plt.ylabel("Diversity")
-    plt.legend(title="Mutation Rate", loc="upper right")
+    plt.legend(title="Mutation Rate", loc="upper right", fontsize="small")
     plt.grid(linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "diversity_curves.png"))
-    plt.show(block=False)
 
 def plot_success_rate_vs_mutation_rate(data, results_dir, optimal_solution=None, tolerance=1e-2):
     """
@@ -220,8 +227,47 @@ def plot_success_rate_vs_mutation_rate(data, results_dir, optimal_solution=None,
     plt.grid(axis="y", linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "success_rate_vs_mutation_rate.png"))
-    plt.show(block=False)
 
+def plot_diversity_vs_mutation_rate(data, results_dir):
+    """
+    Plot the average diversity (standard deviation and Euclidean distance) vs. mutation rate.
+    :param data: DataFrame containing performance metrics.
+    :param results_dir: Path to the directory containing experiment results.
+    """
+    diversity_data = []
+
+    # Extract mutation rates and diversity metrics from the data
+    mutation_rates = data[data["Metric"] == "MUTATION_RATE"][["Experiment", "Value"]].copy()
+    mutation_rates.rename(columns={"Value": "MutationRate"}, inplace=True)
+    mutation_rates["MutationRate"] = mutation_rates["MutationRate"].astype(float)
+
+    for folder in sorted(os.listdir(results_dir)):  # Sort folders for consistent order
+        folder_path = os.path.join(results_dir, folder)
+        if os.path.isdir(folder_path):
+            diversity_path = os.path.join(folder_path, "diversity_metrics.csv")
+            if os.path.exists(diversity_path):
+                df = pd.read_csv(diversity_path)
+                avg_std_dev = df["StdDevDiversity"].mean()  # Average standard deviation diversity
+                avg_euclidean = df["EuclideanDiversity"].mean()  # Average Euclidean diversity
+
+                # Get the mutation rate for the current experiment
+                mutation_rate = mutation_rates.loc[mutation_rates["Experiment"] == folder, "MutationRate"].iloc[0]
+                diversity_data.append({"MutationRate": mutation_rate, "AvgStdDev": avg_std_dev, "AvgEuclidean": avg_euclidean})
+
+    # Convert to DataFrame for plotting
+    diversity_df = pd.DataFrame(diversity_data).sort_values(by="MutationRate")
+
+    # Plot standard deviation diversity
+    plt.figure()
+    plt.plot(diversity_df["MutationRate"], diversity_df["AvgStdDev"], marker="o", label="Std Dev Diversity", color="blue")
+    plt.plot(diversity_df["MutationRate"], diversity_df["AvgEuclidean"], marker="o", label="Euclidean Diversity", color="green")
+    plt.title("Average Diversity vs. Mutation Rate")
+    plt.xlabel("Mutation Rate")
+    plt.ylabel("Diversity")
+    plt.legend()
+    plt.grid(linestyle="--", alpha=0.7)
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, "diversity_vs_mutation_rate.png"))
 
 if __name__ == "__main__":
     main()
