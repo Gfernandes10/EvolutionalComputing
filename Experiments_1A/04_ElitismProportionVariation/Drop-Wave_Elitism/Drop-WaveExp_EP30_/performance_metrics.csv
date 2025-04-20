@@ -1,11 +1,11 @@
 Metric,Value
-Total Execution Time (s),32.47029089927673
-Success Rate (%),98.0
-Average Best Fitness,-0.9986829713711507
-Best Solution Found,-0.9999996576463389
-Chromosome for Best Solution,[8.11980449434424e-05, 5.339585664965174e-05]
-Mean of Optimal Points,[0.0029912569051415627, 0.010610113958593593]
-Standard Deviation of Optimal Points,[0.019095252208822938, 0.07019272049653445]
+Total Execution Time (s),30.01257300376892
+Success Rate (%),97.0
+Average Best Fitness,-0.9980541255619318
+Best Solution Found,-0.999999904317183
+Chromosome for Best Solution,[1.8488543765848853e-05, 4.793432823313459e-05]
+Mean of Optimal Points,[0.012450211513106747, 0.009985974957242936]
+Standard Deviation of Optimal Points,[0.06914194381197107, 0.055535103161927196]
 
 CONFIGURATION
 POPULATION_SIZE,100

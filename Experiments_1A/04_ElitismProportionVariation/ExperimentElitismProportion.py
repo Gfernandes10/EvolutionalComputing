@@ -75,16 +75,24 @@ def plot_fitness_vs_elitism_proportion(data, results_dir):
     Plot the best fitness vs. elitism proportion.
     :param data: DataFrame containing performance metrics.
     """
-    # Filter rows for "ELITISM_PROPORTION" and "Best Solution Found"
-    elitism_proportions = data[data["Metric"] == "ELITISM_PROPORTION"][["Experiment", "Value"]].copy()
-    elitism_proportions.rename(columns={"Value": "ElitismProportion"}, inplace=True)
-    elitism_proportions["ElitismProportion"] = elitism_proportions["ElitismProportion"].astype(float)
+    # Extract population size and number of elites
+    population_data = data[data["Metric"] == "POPULATION_SIZE"][["Experiment", "Value"]].copy()
+    population_data.rename(columns={"Value": "PopulationSize"}, inplace=True)
+    population_data["PopulationSize"] = population_data["PopulationSize"].astype(int)
+
+    elites_data = data[data["Metric"] == "OPTIMIZATION_METHOD_NUMBER_ELITES"][["Experiment", "Value"]].copy()
+    elites_data.rename(columns={"Value": "NumElites"}, inplace=True)
+    elites_data["NumElites"] = elites_data["NumElites"].astype(int)
+
+    # Merge population size and number of elites to calculate ElitismProportion
+    elites_data = elites_data.merge(population_data, on="Experiment", how="left")
+    elites_data["ElitismProportion"] = elites_data["NumElites"] / elites_data["PopulationSize"]
 
     fitness_data = data[data["Metric"] == "Best Solution Found"].copy()
     fitness_data["Value"] = fitness_data["Value"].astype(float)  # Convert Value to float
 
     # Merge the two DataFrames on the "Experiment" column
-    fitness_data = fitness_data.merge(elitism_proportions, on="Experiment", how="left")
+    fitness_data = fitness_data.merge(elites_data, on="Experiment", how="left")
 
     # Group by ElitismProportion and calculate the average fitness
     avg_fitness = fitness_data.groupby("ElitismProportion")["Value"].mean().sort_index()  # Sort by ElitismProportion
@@ -104,16 +112,24 @@ def plot_execution_time_vs_elitism_proportion(data, results_dir):
     Plot the execution time vs. elitism proportion.
     :param data: DataFrame containing performance metrics.
     """
-    # Filter rows for "ELITISM_PROPORTION" and "Total Execution Time (s)"
-    elitism_proportions = data[data["Metric"] == "ELITISM_PROPORTION"][["Experiment", "Value"]].copy()
-    elitism_proportions.rename(columns={"Value": "ElitismProportion"}, inplace=True)
-    elitism_proportions["ElitismProportion"] = elitism_proportions["ElitismProportion"].astype(float)
+    # Extract population size and number of elites
+    population_data = data[data["Metric"] == "POPULATION_SIZE"][["Experiment", "Value"]].copy()
+    population_data.rename(columns={"Value": "PopulationSize"}, inplace=True)
+    population_data["PopulationSize"] = population_data["PopulationSize"].astype(int)
+
+    elites_data = data[data["Metric"] == "OPTIMIZATION_METHOD_NUMBER_ELITES"][["Experiment", "Value"]].copy()
+    elites_data.rename(columns={"Value": "NumElites"}, inplace=True)
+    elites_data["NumElites"] = elites_data["NumElites"].astype(int)
+
+    # Merge population size and number of elites to calculate ElitismProportion
+    elites_data = elites_data.merge(population_data, on="Experiment", how="left")
+    elites_data["ElitismProportion"] = elites_data["NumElites"] / elites_data["PopulationSize"]
 
     execution_time_data = data[data["Metric"] == "Total Execution Time (s)"].copy()
     execution_time_data["Value"] = execution_time_data["Value"].astype(float)  # Convert Value to float
 
     # Merge the two DataFrames on the "Experiment" column
-    execution_time_data = execution_time_data.merge(elitism_proportions, on="Experiment", how="left")
+    execution_time_data = execution_time_data.merge(elites_data, on="Experiment", how="left")
 
     # Group by ElitismProportion and calculate the average execution time
     avg_time = execution_time_data.groupby("ElitismProportion")["Value"].mean().sort_index()  # Sort by ElitismProportion
@@ -134,12 +150,20 @@ def plot_diversity_vs_elitism_proportion(data, results_dir):
     :param data: DataFrame containing performance metrics.
     :param results_dir: Path to the directory containing experiment results.
     """
-    diversity_data = []
+    # Extract population size and number of elites
+    population_data = data[data["Metric"] == "POPULATION_SIZE"][["Experiment", "Value"]].copy()
+    population_data.rename(columns={"Value": "PopulationSize"}, inplace=True)
+    population_data["PopulationSize"] = population_data["PopulationSize"].astype(int)
 
-    # Extract elitism proportions and diversity metrics from the data
-    elitism_proportions = data[data["Metric"] == "ELITISM_PROPORTION"][["Experiment", "Value"]].copy()
-    elitism_proportions.rename(columns={"Value": "ElitismProportion"}, inplace=True)
-    elitism_proportions["ElitismProportion"] = elitism_proportions["ElitismProportion"].astype(float)
+    elites_data = data[data["Metric"] == "OPTIMIZATION_METHOD_NUMBER_ELITES"][["Experiment", "Value"]].copy()
+    elites_data.rename(columns={"Value": "NumElites"}, inplace=True)
+    elites_data["NumElites"] = elites_data["NumElites"].astype(int)
+
+    # Merge population size and number of elites to calculate ElitismProportion
+    elites_data = elites_data.merge(population_data, on="Experiment", how="left")
+    elites_data["ElitismProportion"] = elites_data["NumElites"] / elites_data["PopulationSize"]
+
+    diversity_data = []
 
     for folder in sorted(os.listdir(results_dir)):  # Sort folders for consistent order
         folder_path = os.path.join(results_dir, folder)
@@ -151,7 +175,7 @@ def plot_diversity_vs_elitism_proportion(data, results_dir):
                 avg_euclidean = df["EuclideanDiversity"].mean()  # Average Euclidean diversity
 
                 # Get the elitism proportion for the current experiment
-                elitism_proportion = elitism_proportions.loc[elitism_proportions["Experiment"] == folder, "ElitismProportion"].iloc[0]
+                elitism_proportion = elites_data.loc[elites_data["Experiment"] == folder, "ElitismProportion"].iloc[0]
                 diversity_data.append({"ElitismProportion": elitism_proportion, "AvgStdDev": avg_std_dev, "AvgEuclidean": avg_euclidean})
 
     # Convert to DataFrame for plotting
@@ -207,16 +231,24 @@ def plot_success_rate_vs_elitism_proportion(data, results_dir, optimal_solution=
     :param optimal_solution: (Unused) Known optimal solution.
     :param tolerance: (Unused) Tolerance for determining success.
     """
-    # Filter rows for "ELITISM_PROPORTION" and "Success Rate (%)"
-    elitism_proportions = data[data["Metric"] == "ELITISM_PROPORTION"][["Experiment", "Value"]].copy()
-    elitism_proportions.rename(columns={"Value": "ElitismProportion"}, inplace=True)
-    elitism_proportions["ElitismProportion"] = elitism_proportions["ElitismProportion"].astype(float)
+    # Extract population size and number of elites
+    population_data = data[data["Metric"] == "POPULATION_SIZE"][["Experiment", "Value"]].copy()
+    population_data.rename(columns={"Value": "PopulationSize"}, inplace=True)
+    population_data["PopulationSize"] = population_data["PopulationSize"].astype(int)
+
+    elites_data = data[data["Metric"] == "OPTIMIZATION_METHOD_NUMBER_ELITES"][["Experiment", "Value"]].copy()
+    elites_data.rename(columns={"Value": "NumElites"}, inplace=True)
+    elites_data["NumElites"] = elites_data["NumElites"].astype(int)
+
+    # Merge population size and number of elites to calculate ElitismProportion
+    elites_data = elites_data.merge(population_data, on="Experiment", how="left")
+    elites_data["ElitismProportion"] = elites_data["NumElites"] / elites_data["PopulationSize"]
 
     success_data = data[data["Metric"] == "Success Rate (%)"].copy()
     success_data["Value"] = success_data["Value"].astype(float)  # Ensure Value is numeric
 
     # Merge the two DataFrames on the "Experiment" column
-    success_data = success_data.merge(elitism_proportions, on="Experiment", how="left")
+    success_data = success_data.merge(elites_data, on="Experiment", how="left")
 
     # Group by ElitismProportion and directly use the success rate
     success_rate = success_data.set_index("ElitismProportion")["Value"].sort_index()  # Sort by ElitismProportion
