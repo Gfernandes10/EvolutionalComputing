@@ -195,11 +195,11 @@ def plot_diversity_vs_elitism_proportion(data, results_dir):
 
 def plot_diversity_curves(results_dir):
     """
-    Plot diversity curves (standard deviation and Euclidean distance) for each elitism proportion.
-    :param results_dir: Path to the directory containing experiment results.
+    Plot diversity curves separately: standard deviation and Euclidean distance for different elitism proportions.
     """
+    # Standard Deviation Diversity Curves
     plt.figure()
-    for folder in sorted(os.listdir(results_dir)):  # Sort folders for consistent order
+    for folder in sorted(os.listdir(results_dir)):
         folder_path = os.path.join(results_dir, folder)
         if os.path.isdir(folder_path):
             diversity_path = os.path.join(folder_path, "diversity_metrics.csv")
@@ -207,21 +207,35 @@ def plot_diversity_curves(results_dir):
                 df = pd.read_csv(diversity_path)
                 generations = df["Generation"]
                 std_dev_diversity = df["StdDevDiversity"]
-                euclidean_diversity = df["EuclideanDiversity"]
-
-                # Plot standard deviation diversity
-                plt.plot(generations, std_dev_diversity, label=f"{folder} (Std Dev)", linestyle="--", alpha=0.8)
-
-                # Plot Euclidean diversity
-                plt.plot(generations, euclidean_diversity, label=f"{folder} (Euclidean)", alpha=0.8)
-
-    plt.title("Diversity Curves (Std Dev and Euclidean) for Different Elitism Proportions")
+                plt.plot(generations, std_dev_diversity, label=f"{folder}", linestyle="--", alpha=0.8)
+    plt.title("Standard Deviation Diversity Curves")
     plt.xlabel("Generation")
-    plt.ylabel("Diversity")
+    plt.ylabel("Std Dev Diversity")
     plt.legend(title="Elitism Proportion", loc="upper right", fontsize="small")
     plt.grid(linestyle="--", alpha=0.7)
     plt.tight_layout()
-    plt.savefig(os.path.join(results_dir, "diversity_curves.png"))
+    plt.savefig(os.path.join(results_dir, "diversity_curves_std_dev.png"))
+    plt.show(block=False)
+
+    # Euclidean Diversity Curves
+    plt.figure()
+    for folder in sorted(os.listdir(results_dir)):
+        folder_path = os.path.join(results_dir, folder)
+        if os.path.isdir(folder_path):
+            diversity_path = os.path.join(folder_path, "diversity_metrics.csv")
+            if os.path.exists(diversity_path):
+                df = pd.read_csv(diversity_path)
+                generations = df["Generation"]
+                euclidean_diversity = df["EuclideanDiversity"]
+                plt.plot(generations, euclidean_diversity, label=f"{folder}", alpha=0.8)
+    plt.title("Euclidean Diversity Curves")
+    plt.xlabel("Generation")
+    plt.ylabel("Euclidean Diversity")
+    plt.legend(title="Elitism Proportion", loc="upper right", fontsize="small")
+    plt.grid(linestyle="--", alpha=0.7)
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, "diversity_curves_euclidean.png"))
+    plt.show(block=False)
 
 def plot_success_rate_vs_elitism_proportion(data, results_dir, optimal_solution=None, tolerance=1e-2):
     """

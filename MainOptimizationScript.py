@@ -40,12 +40,13 @@ class MainOptimizationScript:
         self.LOWER_BOUND = -100
         self.UPPER_BOUND = 100
         self.FITNESS_FUNCTION_SELECTION = FITNESS_FUNCTION_SELECTION
-        self.SELECTION_METHOD = 'TournamentSelection'
+        self.SELECTION_METHOD = 'Random'
         self.SELECTION_TOURNAMENT_SIZE = 10
-        self.CROSSOVER_METHOD = 'SinglePointCrossover'
+        self.CROSSOVER_METHOD = 'Random'
         self.CROSSOVER_RATE = 0.8
         self.MUTATION_METHOD = 'RandomMutationOnIndividualGenes'
         self.MUTATION_RATE = 0.5
+        self.APPLY_DIVERSITY_MAINTENANCE = True  # Flag to apply diversity maintenance strategies
         self.OPTIMIZATION_METHOD = 'Elitism'
         self.OPTIMIZATION_METHOD_NUMBER_ELITES = 10
         self.IDENTIFIER = IDENTIFIER  # Optional identifier for result folder prefix
@@ -240,9 +241,6 @@ class MainOptimizationScript:
             std_optimal_point.tolist()  # Convert numpy array to list for saving
         )
 
-        
-        
-
 
     def elitism_optimization(self):
         population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
@@ -288,6 +286,11 @@ class MainOptimizationScript:
                 euclidean_diversity = 0  # No diversity if there's only one chromosome
             self.euclidean_diversity_per_generation.append(euclidean_diversity)
 
+            # Apply diversity maintenance strategies
+            if self.APPLY_DIVERSITY_MAINTENANCE:
+                # Maintain diversity in the population
+                population_fitness = self.maintain_diversity(population_fitness, diversity)
+
             # Store best fitness for convergence curve
             best_population_fitness = min(population_fitness, key=lambda x: x[1])
             best_fitness = best_population_fitness[1]
@@ -295,6 +298,45 @@ class MainOptimizationScript:
         
         return best_population_fitness
     
+    def maintain_diversity(self, population_fitness, diversity, threshold=0.5):
+        """
+        Apply strategies to maintain diversity in the population.
+
+        Parameters:
+        - population_fitness (list): List of tuples containing chromosomes and their fitness values.
+        - diversity (float): Current diversity metric.
+        - threshold (float): Minimum diversity threshold to trigger strategies.
+
+        Returns:
+        - list: Updated population_fitness with recalculated fitness values for new chromosomes.
+        """
+        if diversity < threshold:
+            print(f"Diversity below threshold ({diversity:.4f} < {threshold}). Applying strategies...")
+
+            # Extract population (chromosomes) from population_fitness
+            population = [chromosome for chromosome, _ in population_fitness]
+
+            # Strategy 1: Partial population reinicialization
+            num_to_replace = int(0.2 * len(population))  # Replace 20% of the population
+            new_individuals = [self.generate_chromosome() for _ in range(num_to_replace)]
+            new_individuals_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in new_individuals]
+
+            # Replace the worst individuals with new ones
+            population_fitness = sorted(population_fitness, key=lambda x: x[1])[:-num_to_replace] + new_individuals_fitness
+
+            # Strategy 2: Increase mutation rate temporarily
+            self.MUTATION_RATE *= 1.5
+            print(f"Mutation rate temporarily increased to {self.MUTATION_RATE:.2f}")
+
+            # Strategy 3: Introduce random individuals
+            num_random = int(0.1 * len(population))  # Add 10% random individuals
+            random_individuals = [self.generate_chromosome() for _ in range(num_random)]
+            random_individuals_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in random_individuals]
+
+            # Add random individuals to the population
+            population_fitness.extend(random_individuals_fitness)
+
+        return population_fitness
 
 
 
@@ -316,10 +358,21 @@ class MainOptimizationScript:
         selected_parents_ = []
         # Selection Strategies
         match self.SELECTION_METHOD:
-        # 1. Tournament Selection
             case 'TournamentSelection':
-                  # List to store selected parents
+            # 1. Tournament Selection
                 selected_parents = SelectionMethods.tournament_selection(population_fitness, tournament_size=self.SELECTION_TOURNAMENT_SIZE, selected_parents=selected_parents_)
+            case 'RouletteWheelSelection':
+            # 2. Roulette Wheel Selection
+                selected_parents = SelectionMethods.roulette_wheel_selection(population_fitness)
+            case 'Random':
+            # 3. Random Selection
+                match random.choice(['TournamentSelection', 'RouletteWheelSelection']):
+                    case 'TournamentSelection':
+                        self.SELECTION_METHOD = 'TournamentSelection'
+                    case 'RouletteWheelSelection':
+                        self.SELECTION_METHOD = 'RouletteWheelSelection'
+                selected_parents = self.selection(population_fitness)
+                self.SELECTION_METHOD = 'Random'  # Reset to default        
             case _:
                 selected_parents = selected_parents_
                 raise ValueError("Invalid SELECTION_METHOD")                
@@ -332,9 +385,20 @@ class MainOptimizationScript:
         # Crossover Strategies
         if random.random() < self.CROSSOVER_RATE:
             match self.CROSSOVER_METHOD:
-            # 1. Single-point crossover
                 case 'SinglePointCrossover':
+                # 1. Single-point crossover
                     child1, child2 = CrossoverMethods.single_point_crossover(parent1, parent2)
+                case 'ArithmeticCrossover':
+                # 2. Arithmetic crossover
+                    child1, child2 = CrossoverMethods.arithmetic_crossover(parent1, parent2)
+                case 'Random':
+                    match random.choice(['SinglePointCrossover', 'ArithmeticCrossover']):
+                        case 'SinglePointCrossover':
+                            self.CROSSOVER_METHOD = 'SinglePointCrossover'
+                        case 'ArithmeticCrossover':
+                            self.CROSSOVER_METHOD = 'ArithmeticCrossover'
+                    child1, child2 = self.crossover(parent1, parent2)
+                    self.CROSSOVER_METHOD = 'Random'  # Reset to default
                 case _:
                     raise ValueError("Invalid CROSSOVER_METHOD")
             return child1, child2

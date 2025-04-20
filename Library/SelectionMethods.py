@@ -31,41 +31,22 @@ class SelectionMethods:
         return selected_parents
 
     @staticmethod
-    def roulette_wheel_selection(population, fitnesses):
+    def roulette_wheel_selection(population_fitness):
         """
         Implements roulette wheel selection.
-        Individuals are selected with a probability proportional to their fitness.
+        Individuals are selected with probability proportional to their fitness.
 
-        :param population: List of individuals in the population.
-        :param fitnesses: List of fitness values corresponding to the population.
-        :return: Selected individual.
+        :param population_fitness: List of tuples (individual, fitness)
+        :return: List of selected individuals (parents)
         """
-        total_fitness = sum(fitnesses)
-        pick = random.uniform(0, total_fitness)
-        current = 0
-        for individual, fitness in zip(population, fitnesses):
-            current += fitness
-            if current > pick:
-                return individual
-
-
-    @staticmethod
-    def rank_selection(population, fitnesses):
-        """
-        Implements rank-based selection.
-        Individuals are ranked based on fitness, and selection probability
-        is assigned based on rank.
-
-        :param population: List of individuals in the population.
-        :param fitnesses: List of fitness values corresponding to the population.
-        :return: Selected individual.
-        """
-        sorted_population = sorted(zip(population, fitnesses), key=lambda x: x[1])
-        ranks = range(1, len(sorted_population) + 1)
-        total_rank = sum(ranks)
-        probabilities = [rank / total_rank for rank in ranks]
-        cumulative_probabilities = [sum(probabilities[:i+1]) for i in range(len(probabilities))]
-        pick = random.random()
-        for individual, cumulative_probability in zip(sorted_population, cumulative_probabilities):
-            if pick <= cumulative_probability:
-                return individual[0]
+        selected_parents = []
+        total_fitness = sum(fitness for _, fitness in population_fitness)
+        for _ in range(len(population_fitness)):
+            pick = random.uniform(0, total_fitness)
+            current = 0
+            for individual, fitness in population_fitness:
+                current += fitness
+                if current >= pick:
+                    selected_parents.append(individual)
+                    break
+        return selected_parents

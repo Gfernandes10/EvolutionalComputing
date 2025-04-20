@@ -31,7 +31,29 @@ class CrossoverMethods:
         offspring2 = parent2[:point] + parent1[point:]
         
         return offspring1, offspring2
-
+    @staticmethod
+    def arithmetic_crossover(parent1, parent2):
+        """
+        Perform arithmetic crossover between two parents.
+        
+        Args:
+            parent1 (list): The first parent.
+            parent2 (list): The second parent.
+        
+        Returns:
+            tuple: Two offspring resulting from the crossover.
+        """
+        if len(parent1) != len(parent2):
+            raise ValueError("Parents must have the same length.")
+        
+        alpha = random.uniform(0, 1)
+        
+        # Create offspring by linear combination
+        offspring1 = [alpha * gene1 + (1 - alpha) * gene2 for gene1, gene2 in zip(parent1, parent2)]
+        offspring2 = [(1 - alpha) * gene1 + alpha * gene2 for gene1, gene2 in zip(parent1, parent2)]
+        
+        return offspring1, offspring2
+    
     @staticmethod
     def uniform_crossover(parent1, parent2):
         """
