@@ -114,11 +114,10 @@ class MainOptimizationScript:
 
         start_time = time.time()  # Start timing
         for execution in range(1, num_executions + 1):
-            self.elitism_optimization()
+            best_population_fitness = self.elitism_optimization()
             # Retrieve the best solution and its fitness value from the last generation
-            best_individual = min(self.population_fitness, key=lambda x: x[1])
-            best_solution = best_individual[0]
-            best_fitness = best_individual[1]
+            best_solution = best_population_fitness[0]
+            best_fitness = best_population_fitness[1]
 
             # Store the result of this execution
             self.ResultsOverall.append({
@@ -247,14 +246,13 @@ class MainOptimizationScript:
 
     def elitism_optimization(self):
         population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
+        population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
         #Optimization loop
         self.best_fitness_per_generation = []
         self.diversity_per_generation = []  # Reset diversity metrics
         self.euclidean_diversity_per_generation = []  # Store Euclidean diversity metrics
-        for idx in range(self.GENERATION_COUNT):
-            #Evaluate fitness of the population
-            population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
-            self.population_fitness = population_fitness
+        for idx in range(self.GENERATION_COUNT):          
+            
             #Select parents for crossover
             selected_parents = self.selection(population_fitness)
             #Create offspring through crossover and mutation
@@ -269,12 +267,13 @@ class MainOptimizationScript:
             #Apply elitism to retain the best individuals
             num_elites = self.OPTIMIZATION_METHOD_NUMBER_ELITES # Number of elite individuals to retain
             elites = sorted(population_fitness, key=lambda x: x[1])[:num_elites]
-            best_individual = min(population_fitness, key=lambda x: x[1])
-            best_individual_value =  best_individual [0] 
-            best_individual_fitness_value = best_individual[1] # Evaluate fitness of the best individual
 
             # Update population
             population = [elite[0] for elite in elites] + [chromosome[0] for chromosome in new_population_fitness]
+
+            #Evaluate fitness of the population
+            population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
+            self.population_fitness = population_fitness
 
             # Calculate and store diversity (standard deviation)
             gene_matrix = np.array([chromosome for chromosome, _ in population_fitness])  # Extract genes into a matrix
@@ -290,8 +289,11 @@ class MainOptimizationScript:
             self.euclidean_diversity_per_generation.append(euclidean_diversity)
 
             # Store best fitness for convergence curve
-            best_fitness = min(population_fitness, key=lambda x: x[1])[1]
+            best_population_fitness = min(population_fitness, key=lambda x: x[1])
+            best_fitness = best_population_fitness[1]
             self.best_fitness_per_generation.append(best_fitness)
+        
+        return best_population_fitness
     
 
 
