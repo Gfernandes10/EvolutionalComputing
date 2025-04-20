@@ -50,6 +50,9 @@ class MainOptimizationScript:
         self.OPTIMIZATION_METHOD = 'Elitism'
         self.OPTIMIZATION_METHOD_NUMBER_ELITES = 10
         self.IDENTIFIER = IDENTIFIER  # Optional identifier for result folder prefix
+        self.STOPPING_METHOD = 'GenerationCount'  # Options: 'GenerationCount', 'TargetFitness', 'NoImprovement'
+        self.TARGET_FITNESS = None  # Desired fitness value for stopping
+        self.NO_IMPROVEMENT_LIMIT = None  # Max generations without improvement
 
 
 
@@ -245,10 +248,13 @@ class MainOptimizationScript:
     def elitism_optimization(self):
         population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
         population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
-        #Optimization loop
         self.best_fitness_per_generation = []
         self.diversity_per_generation = []  # Reset diversity metrics
         self.euclidean_diversity_per_generation = []  # Store Euclidean diversity metrics
+
+        best_so_far = float('inf')
+        no_improvement_count = 0
+
         for idx in range(self.GENERATION_COUNT):          
             
             #Select parents for crossover
@@ -295,6 +301,23 @@ class MainOptimizationScript:
             best_population_fitness = min(population_fitness, key=lambda x: x[1])
             best_fitness = best_population_fitness[1]
             self.best_fitness_per_generation.append(best_fitness)
+
+            # Check for improvement
+            if best_fitness < best_so_far:
+                best_so_far = best_fitness
+                no_improvement_count = 0  # Reset counter
+            else:
+                no_improvement_count += 1
+
+            # Stopping criteria
+            if self.STOPPING_METHOD == 'TargetFitness' and self.TARGET_FITNESS is not None:
+                if best_so_far <= self.TARGET_FITNESS:
+                    print(f"Stopping early: Target fitness {self.TARGET_FITNESS} reached at generation {idx + 1}.")
+                    break
+            elif self.STOPPING_METHOD == 'NoImprovement' and self.NO_IMPROVEMENT_LIMIT is not None:
+                if no_improvement_count >= self.NO_IMPROVEMENT_LIMIT:
+                    print(f"Stopping early: No improvement for {self.NO_IMPROVEMENT_LIMIT} generations.")
+                    break
         
         return best_population_fitness
     
@@ -584,3 +607,4 @@ class MainOptimizationScript:
 
 
         print(f"Results saved in: {results_dir}")
+```python
