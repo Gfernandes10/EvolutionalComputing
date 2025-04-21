@@ -182,23 +182,111 @@ A escolha do critério de parada depende dos objetivos do experimento e do tempo
 Esse experimento é executado pelo script `ExperimentSimple.py', ele é utilizado apenas pra demonstrar o código genético com uma configuração fixa. Resultados são apresentados a seguir para cada função custo.
 
 
-#### Levi
+#### <ins> Função Levi</ins>
 
+A configuração utilizada para o experimento com a função Levi foi a seguinte:
+
+| Parâmetro                      | Valor                              |
+|--------------------------------|------------------------------------|
+| `POPULATION_SIZE`              | 200                                |
+| `GENERATION_COUNT`             | 100                                |
+| `CHROMOSOME_LENGTH`            | 2                                  |
+| `LOWER_BOUND`                  | -100                               |
+| `UPPER_BOUND`                  | 100                                |
+| `FITNESS_FUNCTION_SELECTION`   | Levi                               |
+| `SELECTION_METHOD`             | Random                             |
+| `SELECTION_TOURNAMENT_SIZE`    | 10                                 |
+| `CROSSOVER_METHOD`             | Random                             |
+| `CROSSOVER_RATE`               | 0.8                                |
+| `MUTATION_METHOD`              | Random                             |
+| `MUTATION_RATE`                | 0.1                                |
+| `OPTIMIZATION_METHOD`          | Elitism                            |
+| `OPTIMIZATION_METHOD_NUMBER_ELITES` | 20                          |
+| `NUM_EXECUTIONS`               | 100                                |
+| `OPTIMAL_SOLUTION`             | [1, 1]                             |
+| `TOLERANCE`                    | 0.01                               |
+| `ENABLE_FITNESS_FUNCTION_VISUALIZATION` | False                   |
+| `IDENTIFIER`                   | Levi                               |
+
+Resultados do Experimento
+
+| Métrica                        | Valor                              |
+|--------------------------------|------------------------------------|
+| `Total Execution Time (s)`     | 49.38577842712402                  |
+| `Success Rate (%)`             | 100.0                              |
+| `Average Best Fitness`         | 6.931186853893761e-06              |
+| `Best Solution Found`          | 4.344423405276921e-16              |
+| `Chromosome for Best Solution` | [1.0000000019259585, 0.999999989937808] |
+| `Mean of Optimal Points`       | [0.9999762205854817, 1.0000000017900224] |
+| `Standard Deviation of Optimal Points` | [0.0002726099263058269, 0.0004528774520905827] |
+
+### Gráficos Gerados
+
+#### Curva de Convergência
+![Curva de Convergência](./01_SimpleExperiment/Levi_/convergence_curve.png)
+
+#### Diversidade da População
+A diversidade é calculada através da média do desvio padrão de cada gene em cada geração. O gráfico a seguir apresenta a média de diversidade de todas as execuções e o seu desvio padrão associado. 
+
+![Diversidade da População](./01_SimpleExperiment/Levi_/population_diversity.png)
+
+#### Distribuição dos Pontos Ótimos
+A imagem a seguir mostra os pontos ótimos obtidos para todas execuções bem sucedidas. Além disso, apresenta-se a média desses pontos ótimos e o desvio padrão associado a essa média.
+
+![Distribuição dos Pontos Ótimos](./01_SimpleExperiment/Levi_/optimal_points_distribution.png)
+
+
+#### <ins> Função Drop-Wave</ins>
+A configuração utilizada para o experimento com a função Drop-wave foi a seguinte:
+
+| Parâmetro                      | Valor                              |
+|--------------------------------|------------------------------------|
+| `POPULATION_SIZE`              | 200                                |
+| `GENERATION_COUNT`             | 200                                |
+| `CHROMOSOME_LENGTH`            | 2                                  |
+| `LOWER_BOUND`                  | -100                               |
+| `UPPER_BOUND`                  | 100                                |
+| `FITNESS_FUNCTION_SELECTION`   | Drop-Wave                          |
+| `SELECTION_METHOD`             | Random                             |
+| `SELECTION_TOURNAMENT_SIZE`    | 10                                 |
+| `CROSSOVER_METHOD`             | Random                             |
+| `CROSSOVER_RATE`               | 0.8                                |
+| `MUTATION_METHOD`              | Random                             |
+| `MUTATION_RATE`                | 0.1                                |
+| `OPTIMIZATION_METHOD`          | Elitism                            |
+| `OPTIMIZATION_METHOD_NUMBER_ELITES` | 20                          |
+| `NUM_EXECUTIONS`               | 100                                |
+| `OPTIMAL_SOLUTION`             | [0, 0]                             |
+| `TOLERANCE`                    | 0.01                               |
+| `ENABLE_FITNESS_FUNCTION_VISUALIZATION` | False                   |
+| `IDENTIFIER`                   | Drop-Wave                          |
+
+Resultados do Experimento
+
+| Métrica                        | Valor                              |
+|--------------------------------|------------------------------------|
+| `Total Execution Time (s)`     | 86.25582528114319                  |
+| `Success Rate (%)`             | 92.0                               |
+| `Average Best Fitness`         | -0.9948896050918223                |
+| `Best Solution Found`          | -1.0                               |
+| `Chromosome for Best Solution` | [1.1968360855877302e-10, -1.2295441717671068e-09] |
+| `Mean of Optimal Points`       | [3.727417379878614e-05, 2.7765052998566814e-05] |
+| `Standard Deviation of Optimal Points` | [0.0005256006788410745, 0.00014802600090781904] |
 
 
 ### Gráficos Gerados
 
 #### Curva de Convergência
-![Curva de Convergência](./convergence_curve.png)
+![Curva de Convergência](./01_SimpleExperiment/Drop-Wave_/convergence_curve.png)
 
 #### Diversidade da População
-![Diversidade da População](./population_diversity.png)
+
+![Diversidade da População](./01_SimpleExperiment/Drop-Wave_//population_diversity.png)
 
 #### Distribuição dos Pontos Ótimos
-![Distribuição dos Pontos Ótimos](./optimal_points_distribution.png)
 
-#### Métricas de Diversidade
-![Métricas de Diversidade](./diversity_metrics.png)
+![Distribuição dos Pontos Ótimos](./01_SimpleExperiment/Drop-Wave_/optimal_points_distribution.png)
+
 
 ### Tabelas de Resultados
 

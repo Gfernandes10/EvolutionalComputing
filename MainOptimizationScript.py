@@ -34,8 +34,8 @@ class MainOptimizationScript:
             raise ValueError(f"Invalid FITNESS_FUNCTION_SELECTION. Allowed values are: {self.ALLOWED_FITNESS_FUNCTIONS}")
 
         # Initialize configuration parameters
-        self.POPULATION_SIZE = 100
-        self.GENERATION_COUNT = 50        
+        self.POPULATION_SIZE = 200
+        self.GENERATION_COUNT = 100        
         self.CHROMOSOME_LENGTH = 2
         self.LOWER_BOUND = -100
         self.UPPER_BOUND = 100
@@ -44,11 +44,11 @@ class MainOptimizationScript:
         self.SELECTION_TOURNAMENT_SIZE = 10
         self.CROSSOVER_METHOD = 'Random'
         self.CROSSOVER_RATE = 0.8
-        self.MUTATION_METHOD = 'RandomMutationOnIndividualGenes'
-        self.MUTATION_RATE = 0.5
+        self.MUTATION_METHOD = 'Random'
+        self.MUTATION_RATE = 0.1
         self.APPLY_DIVERSITY_MAINTENANCE = True  # Flag to apply diversity maintenance strategies
         self.OPTIMIZATION_METHOD = 'Elitism'
-        self.OPTIMIZATION_METHOD_NUMBER_ELITES = 10
+        self.OPTIMIZATION_METHOD_NUMBER_ELITES = 20
         self.IDENTIFIER = IDENTIFIER  # Optional identifier for result folder prefix
         self.STOPPING_METHOD = 'GenerationCount'  # Options: 'GenerationCount', 'TargetFitness', 'NoImprovement'
         self.TARGET_FITNESS = None  # Desired fitness value for stopping
@@ -142,13 +142,14 @@ class MainOptimizationScript:
             print(f"Execution {execution}/{num_executions} completed. Best Fitness: {best_fitness:.6f}. Elapsed Time: {elapsed_time:.2f} seconds")
 
             best_fitness_values.append(best_fitness)
-            optimal_points.append(best_solution)  # Store the best chromosome (optimal point)
+            # optimal_points.append(best_solution)  # Store the best chromosome (optimal point)
 
             # Check if the solution is within the tolerance of the optimal solution
             if optimal_solution is not None:
                 distance = sqrt(sum((a - b) ** 2 for a, b in zip(best_solution, optimal_solution)))
                 if distance <= tolerance:
                     success_count += 1
+                    optimal_points.append(best_solution)  # Store the best chromosome (optimal point)
 
             all_best_fitness_per_generation.append(self.best_fitness_per_generation)
             all_diversity_per_generation.append(self.diversity_per_generation)
@@ -246,6 +247,7 @@ class MainOptimizationScript:
 
 
     def elitism_optimization(self):
+        population = []
         population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
         population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
         self.best_fitness_per_generation = []
@@ -256,7 +258,8 @@ class MainOptimizationScript:
         no_improvement_count = 0
 
         for idx in range(self.GENERATION_COUNT):          
-            
+            # population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
+            # self.population_fitness = population_fitness
             #Select parents for crossover
             selected_parents = self.selection(population_fitness)
             #Create offspring through crossover and mutation
@@ -292,7 +295,7 @@ class MainOptimizationScript:
                 euclidean_diversity = 0  # No diversity if there's only one chromosome
             self.euclidean_diversity_per_generation.append(euclidean_diversity)
 
-            # Apply diversity maintenance strategies
+            # # Apply diversity maintenance strategies
             if self.APPLY_DIVERSITY_MAINTENANCE:
                 # Maintain diversity in the population
                 population_fitness = self.maintain_diversity(population_fitness, diversity)
@@ -321,7 +324,7 @@ class MainOptimizationScript:
         
         return best_population_fitness
     
-    def maintain_diversity(self, population_fitness, diversity, threshold=0.5):
+    def maintain_diversity(self, population_fitness, diversity, threshold=0.1):
         """
         Apply strategies to maintain diversity in the population.
 
@@ -442,6 +445,14 @@ class MainOptimizationScript:
         # 1. Random mutation on individual genes
             case 'RandomMutationOnIndividualGenes':
                 mutated_individual = MutationMethods.random_mutation_on_individual_genes(individual, self.MUTATION_RATE)
+            case 'GaussianMutation':
+                # 2. Gaussian mutation
+                mutated_individual = MutationMethods.gaussian_mutation(individual, self.MUTATION_RATE)
+            case 'Random':
+                # 3. Random mutation method
+                self.MUTATION_METHOD = random.choice(['RandomMutationOnIndividualGenes', 'GaussianMutation'])
+                mutated_individual = self.mutation(individual)
+                self.MUTATION_METHOD = 'Random'
             case _:
                 raise ValueError("Invalid MUTATION_METHOD")
         return mutated_individual

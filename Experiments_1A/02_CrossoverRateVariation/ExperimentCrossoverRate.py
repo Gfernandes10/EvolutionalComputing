@@ -10,7 +10,7 @@ import numpy as np
 
 def main():
     # Define the crossover rates to test
-    crossover_rates = [0.2, 0.4, 0.6, 0.8, 1.0]
+    crossover_rates = [0.2, 0.4, 0.6, 0.8]
     fitness_function = 'Drop-Wave'  # Example fitness function
     num_executions = 100  # Number of executions for each crossover rate
     optimal_solution = [0, 0]  # Known optimal solution for Drop-Wave

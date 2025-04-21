@@ -10,7 +10,7 @@ import numpy as np
 
 def main():
     # Define the mutation rates to test
-    mutation_rates = [0.1, 0.3, 0.5, 0.7, 0.9]
+    mutation_rates = [0.1, 0.3, 0.5, 0.7]
     fitness_function = 'Drop-Wave'  # Example fitness function
     num_executions = 100  # Number of executions for each mutation rate
     optimal_solution = [0, 0]  # Known optimal solution for Drop-Wave
