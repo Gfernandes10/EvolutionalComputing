@@ -35,7 +35,7 @@ class MainOptimizationScript:
 
         # Initialize configuration parameters
         self.POPULATION_SIZE = 100
-        self.GENERATION_COUNT = 10        
+        self.GENERATION_COUNT = 50        
         self.CHROMOSOME_LENGTH = 2
         self.LOWER_BOUND = -100
         self.UPPER_BOUND = 100
@@ -378,26 +378,30 @@ class MainOptimizationScript:
         :param population_fitness: List of individuals containing chromosomes and their fitness values.
         """
 
-        selected_parents_ = []
         # Selection Strategies
         match self.SELECTION_METHOD:
             case 'TournamentSelection':
             # 1. Tournament Selection
-                selected_parents = SelectionMethods.tournament_selection(population_fitness, tournament_size=self.SELECTION_TOURNAMENT_SIZE, selected_parents=selected_parents_)
-            case 'RouletteWheelSelection':
+                selected_parents = SelectionMethods.tournament_selection(population_fitness, tournament_size=self.SELECTION_TOURNAMENT_SIZE)
+            case 'InvertRouletteWheelSelection':
             # 2. Roulette Wheel Selection
-                selected_parents = SelectionMethods.roulette_wheel_selection(population_fitness)
+                selected_parents = SelectionMethods.inverted_roulette_wheel_selection(population_fitness)
+            case 'RandomSelection':
+            # 3. Random Selection
+                selected_parents = SelectionMethods.random_selection(population_fitness)
+            case 'DeterministicSamplingSelection':
+            # 4. Deterministic Sampling Selection
+                selected_parents = SelectionMethods.deterministic_sampling_selection(population_fitness)
             case 'Random':
             # 3. Random Selection
-                match random.choice(['TournamentSelection', 'RouletteWheelSelection']):
-                    case 'TournamentSelection':
-                        self.SELECTION_METHOD = 'TournamentSelection'
-                    case 'RouletteWheelSelection':
-                        self.SELECTION_METHOD = 'RouletteWheelSelection'
+                self.SELECTION_METHOD = random.choice(['TournamentSelection', 
+                                                       'InvertRouletteWheelSelection', 
+                                                       'RandomSelection', 
+                                                       'DeterministicSamplingSelection'])
                 selected_parents = self.selection(population_fitness)
-                self.SELECTION_METHOD = 'Random'  # Reset to default        
+                self.SELECTION_METHOD = 'Random'  # Reset to default                        
             case _:
-                selected_parents = selected_parents_
+                selected_parents = []
                 raise ValueError("Invalid SELECTION_METHOD")                
         return selected_parents  # Return the list of selected parents
 
@@ -558,6 +562,9 @@ class MainOptimizationScript:
             for i, result in enumerate(results, start=1):
                 csv_file.write(f"{i},{result['BestFitness']},{result['BestSolution']}\n")
 
+        # Add ENABLE_FITNESS_FUNCTION_VISUALIZATION to the configuration
+        config["ENABLE_FITNESS_FUNCTION_VISUALIZATION"] = self.ENABLE_FITNESS_FUNCTION_VISUALIZATION
+
         # Save configuration as JSON
         config["IDENTIFIER"] = self.IDENTIFIER
         config_json_path = os.path.join(results_dir, "config.json")
@@ -607,4 +614,3 @@ class MainOptimizationScript:
 
 
         print(f"Results saved in: {results_dir}")
-```python

@@ -31,22 +31,66 @@ class SelectionMethods:
         return selected_parents
 
     @staticmethod
-    def roulette_wheel_selection(population_fitness):
+    def inverted_roulette_wheel_selection(population_fitness):
         """
-        Implements roulette wheel selection.
-        Individuals are selected with probability proportional to their fitness.
+        Implements inverted roulette wheel selection.
+        Individuals with lower fitness have a higher probability of being selected.
 
         :param population_fitness: List of tuples (individual, fitness)
         :return: List of selected individuals (parents)
         """
         selected_parents = []
-        total_fitness = sum(fitness for _, fitness in population_fitness)
+        max_fitness = max(fitness for _, fitness in population_fitness)
+        adjusted_fitness = [(individual, max_fitness - fitness) for individual, fitness in population_fitness]
+        total_adjusted_fitness = sum(fitness for _, fitness in adjusted_fitness)
+
         for _ in range(len(population_fitness)):
-            pick = random.uniform(0, total_fitness)
+            pick = random.uniform(0, total_adjusted_fitness)
             current = 0
-            for individual, fitness in population_fitness:
+            for individual, fitness in adjusted_fitness:
                 current += fitness
                 if current >= pick:
                     selected_parents.append(individual)
                     break
+        return selected_parents
+
+    @staticmethod
+    def random_selection(population_fitness):
+        """
+        Implements random selection.
+        Individuals are selected randomly without considering fitness.
+
+        :param population_fitness: List of tuples (individual, fitness)
+        :return: List of selected individuals (parents)
+        """
+        selected_parents = []
+        for _ in range(len(population_fitness)):
+            selected_parents.append(random.choice(population_fitness)[0])
+        return selected_parents
+
+    @staticmethod
+    def deterministic_sampling_selection(population_fitness):
+        """
+        Implements deterministic sampling selection for minimization problems.
+        Selects individuals based on a fixed proportion of fitness, ensuring proportional representation.
+        Individuals with lower fitness have higher representation.
+
+        :param population_fitness: List of tuples (individual, fitness)
+        :return: List of selected individuals (parents)
+        """
+        selected_parents = []
+        total_inverse_fitness = sum(1 / fitness for _, fitness in population_fitness)
+        proportions = [(individual, (1 / fitness) / total_inverse_fitness) for individual, fitness in population_fitness]
+        population_size = len(population_fitness)
+
+        for individual, proportion in proportions:
+            count = round(proportion * population_size)
+            selected_parents.extend([individual] * count)
+
+        # Adjust the number of selected parents to match the population size
+        while len(selected_parents) > population_size:
+            selected_parents.pop()
+        while len(selected_parents) < population_size:
+            selected_parents.append(random.choice(population_fitness)[0])
+
         return selected_parents
