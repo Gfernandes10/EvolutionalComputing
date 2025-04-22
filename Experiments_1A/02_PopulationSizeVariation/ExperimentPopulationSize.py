@@ -11,9 +11,9 @@ import numpy as np
 def main():
     # Define the population sizes to test
     population_sizes = [50, 100, 200, 400]
-    fitness_function =  'Drop-Wave' #'Levi' 
-    num_executions = 20  # Number of executions for each population size
-    optimal_solution=[0,0] #[1, 1]
+    fitness_function =  'Levi'
+    num_executions = 100  # Number of executions for each population size
+    optimal_solution=[1, 1]
 
     # Define the results directory
     results_dir = os.path.join(os.path.dirname(__file__),fitness_function)
@@ -29,7 +29,43 @@ def main():
         )
         OptimizationObject.POPULATION_SIZE = size
         OptimizationObject.RESULTS_BASE_DIR = results_dir
-        OptimizationObject.GENERATION_COUNT = 100
+        OptimizationObject.multiple_optimization(num_executions=num_executions, optimal_solution = optimal_solution)
+
+    # Load results and generate plots
+    data = load_performance_metrics(results_dir)
+    if (data.empty):
+        print("No performance metrics found.")
+        return
+
+    # Generate plots
+    plot_fitness_vs_population(data, results_dir)
+    plot_execution_time_vs_population(data, results_dir)
+    plot_convergence_curves(results_dir)
+    plot_diversity_curves(results_dir)
+    plot_diversity_vs_population(data, results_dir)  
+    plot_success_rate_vs_population(data, results_dir, optimal_solution=optimal_solution)
+
+    # Define the population sizes to test
+    population_sizes = [50, 100, 200, 400]
+    fitness_function =  'Drop-Wave' 
+    num_executions = 100 # Number of executions for each population size
+    optimal_solution=[0,0] 
+
+    # Define the results directory
+    results_dir = os.path.join(os.path.dirname(__file__),fitness_function)
+    identifier_prefix=fitness_function + 'Experiment'
+
+    # Run the experiments
+    os.makedirs(results_dir, exist_ok=True)  # Ensure the results directory exists
+    for size in population_sizes:
+        print(f"Running experiment with POPULATION_SIZE={size}")
+        OptimizationObject = MainOptimizationScript(
+            FITNESS_FUNCTION_SELECTION=fitness_function,
+            IDENTIFIER=f"{identifier_prefix}_POP{size}"
+        )
+        OptimizationObject.POPULATION_SIZE = size
+        OptimizationObject.RESULTS_BASE_DIR = results_dir
+        OptimizationObject.GENERATION_COUNT = 200
         OptimizationObject.multiple_optimization(num_executions=num_executions, optimal_solution = optimal_solution)
 
     # Load results and generate plots
@@ -96,7 +132,7 @@ def plot_fitness_vs_population(data, results_dir):
     plt.grid(axis="y", linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "fitness_vs_population.png"))
-    plt.show(block=False)
+
 
 def plot_execution_time_vs_population(data, results_dir):
     """
@@ -126,7 +162,7 @@ def plot_execution_time_vs_population(data, results_dir):
     plt.grid(axis="y", linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "execution_time_vs_population.png"))
-    plt.show(block=False)
+
 
 def plot_convergence_curves(results_dir):
     """
@@ -164,7 +200,7 @@ def plot_convergence_curves(results_dir):
     plt.grid(linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "convergence_curves_all_populations.png"))
-    plt.show(block=False)
+
 
 
 def plot_diversity_curves(results_dir):
@@ -189,7 +225,7 @@ def plot_diversity_curves(results_dir):
     plt.grid(linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "diversity_curves_std_dev.png"))
-    plt.show(block=False)
+
 
     # Euclidean Diversity Curves
     plt.figure()
@@ -209,7 +245,7 @@ def plot_diversity_curves(results_dir):
     plt.grid(linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "diversity_curves_euclidean.png"))
-    plt.show(block=False)
+
 
 def plot_success_rate_vs_population(data, results_dir, optimal_solution=None, tolerance=1e-2):
     """
@@ -242,7 +278,7 @@ def plot_success_rate_vs_population(data, results_dir, optimal_solution=None, to
     plt.grid(axis="y", linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "success_rate_vs_population.png"))
-    plt.show(block=False)
+
 
 def plot_diversity_vs_population(data, results_dir):
     """

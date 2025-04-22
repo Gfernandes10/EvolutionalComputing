@@ -177,7 +177,9 @@ Os critérios de parada determinam quando o algoritmo deve encerrar a execução
 
 A escolha do critério de parada depende dos objetivos do experimento e do tempo disponível para execução.
 
+
 ## Experimentos
+
 ### Experimento 1
 Esse experimento é executado pelo script `ExperimentSimple.py', ele é utilizado apenas pra demonstrar o código genético com uma configuração fixa. Resultados são apresentados a seguir para cada função custo.
 
@@ -287,8 +289,118 @@ Resultados do Experimento
 
 ![Distribuição dos Pontos Ótimos](./01_SimpleExperiment/Drop-Wave_/optimal_points_distribution.png)
 
+---
+### Experimento 2
+O segundo experimento consistiu em variar a população inicial para cada uma das funções custo utilizadas. Para fazer isso de uma forma estrutura foi implementado o script [ExperimentPopulationSize.py](./02_PopulationSizeVariation/ExperimentPopulationSize.py).
 
-### Tabelas de Resultados
+Esse script vai executar os passos anteriormente explecitados enquanto varia a população inicial em: [50, 100, 200, 400]
 
-Os resultados detalhados, incluindo métricas de desempenho, configurações utilizadas e dados agregados, estão disponíveis nos arquivos CSV gerados no diretório `Results`.
+Os resultados podem ser encontrados em [02_PopulationSizeVariation](./02_PopulationSizeVariation/), mas as informações principais são apresentadas a seguir.
+
+#### <ins> Função Levi</ins>
+Configuração:
+
+| Parâmetro                      | Valor                              |
+|--------------------------------|------------------------------------|
+| `POPULATION_SIZE`              | 50 100 200 400                     |
+| `GENERATION_COUNT`             | 100                                |
+| `CHROMOSOME_LENGTH`            | 2                                  |
+| `LOWER_BOUND`                  | -100                               |
+| `UPPER_BOUND`                  | 100                                |
+| `FITNESS_FUNCTION_SELECTION`   | Levi                               |
+| `SELECTION_METHOD`             | Random                             |
+| `SELECTION_TOURNAMENT_SIZE`    | 10                                 |
+| `CROSSOVER_METHOD`             | Random                             |
+| `CROSSOVER_RATE`               | 0.8                                |
+| `MUTATION_METHOD`              | Random                             |
+| `MUTATION_RATE`                | 0.225                              |
+| `OPTIMIZATION_METHOD`          | Elitism                            |
+| `OPTIMIZATION_METHOD_NUMBER_ELITES` | 20                          |
+| `NUM_EXECUTIONS`               | 100                                |
+| `OPTIMAL_SOLUTION`             | [1, 1]                             |
+| `TOLERANCE`                    | 0.01                               |
+| `ENABLE_FITNESS_FUNCTION_VISUALIZATION` | False                   |
+| `IDENTIFIER`                   | LeviExperiment_POP50               |
+
+Resultados:
+
+| Métrica                        | Valor (Pop 50)                     | Valor (Pop 100)                    | Valor (Pop 200)                    | Valor (Pop 400)                    | 
+|--------------------------------|------------------------------------|------------------------------------|------------------------------------|------------------------------------|
+| `Total Execution Time (s)`     | 13.734084367752075                 | 24.39724111557007                  | 49.836204051971436                 | 115.94279527664185                 |
+| `Success Rate (%)`             | 96.0                               | 100.0                              | 100.0                              | 100.0                              |
+| `Average Best Fitness`         | 0.0002759522713756379              | 4.834148016256333e-05              | 1.4423788788487844e-05             | 5.597974456271896e-07              |
+| `Best Solution Found`          | 1.6857203051960365e-09             | 5.309025825887526e-13              | 3.7200342912541225e-17             | 2.888746143425376e-14              |
+| `Chromosome for Best Solution` | [1.0000007607647516, 0.9999595805494914] | [1.0000000064190506, 1.0000007260863275] | [0.9999999993852009, 0.9999999981977981] | [1.0000000057696836, 0.9999998390739089] |
+| `Mean of Optimal Points`       | [1.000067980257224, 0.9999557675466907] | [1.0001405119913311, 1.0000438362952746] | [1.000035746607017, 0.9999302430277044] | [1.0000011292055253, 1.0000042500303954] |
+| `Standard Deviation of Optimal Points` | [0.0017099195046880596, 0.0017906220807427506] | [0.0007007161132453017, 0.0015693413159984623] | [0.00039094460619084584, 0.0007584421942344941] | [7.544505970749895e-05, 0.00021994529289061127] |
+
+### Gráficos Gerados
+
+#### Sucesso vs. Tamanho da População
+![Success Rate vs. Population Size](./02_PopulationSizeVariation/Levi/success_rate_vs_population.png)
+
+#### Tempo de Execução vs. Tamanho da População
+![Execution Time vs. Population Size](./02_PopulationSizeVariation/Levi/execution_time_vs_population.png)
+
+#### Diversidade Média vs. Tamanho da População
+![Average Diversity vs. Population Size](./02_PopulationSizeVariation/Levi/diversity_vs_population.png)
+
+#### Curvas de Convergência para Diferentes Tamanhos de População
+![Convergence Curves for Different Population Sizes](./02_PopulationSizeVariation/Levi/convergence_curves_all_populations.png)
+
+
+
+#### <ins> Função Drop-Wave</ins>
+Configuração:
+
+| Parâmetro                      | Valor                              |
+|--------------------------------|------------------------------------|
+| `POPULATION_SIZE`              | 50 100 200 400                     |
+| `GENERATION_COUNT`             | 200                                |
+| `CHROMOSOME_LENGTH`            | 2                                  |
+| `LOWER_BOUND`                  | -100                               |
+| `UPPER_BOUND`                  | 100                                |
+| `FITNESS_FUNCTION_SELECTION`   | Drop-Wave                          |
+| `SELECTION_METHOD`             | Random                             |
+| `SELECTION_TOURNAMENT_SIZE`    | 10                                 |
+| `CROSSOVER_METHOD`             | Random                             |
+| `CROSSOVER_RATE`               | 0.8                                |
+| `MUTATION_METHOD`              | Random                             |
+| `MUTATION_RATE`                | 0.1 (varia com população)          |
+| `OPTIMIZATION_METHOD`          | Elitism                            |
+| `OPTIMIZATION_METHOD_NUMBER_ELITES` | 20                          |
+| `NUM_EXECUTIONS`               | 100                                |
+| `OPTIMAL_SOLUTION`             | [0, 0]                             |
+| `TOLERANCE`                    | 0.01                               |
+| `ENABLE_FITNESS_FUNCTION_VISUALIZATION` | False                   |
+| `IDENTIFIER`                   | Drop-WaveExperiment_POP50          |
+
+Resultados:
+
+| Métrica                        | Valor (Pop 50)                     | Valor (Pop 100)                    | Valor (Pop 200)                    | Valor (Pop 400)                    | 
+|--------------------------------|------------------------------------|------------------------------------|------------------------------------|------------------------------------|
+| `Total Execution Time (s)`     | 30.41422390937805                  | 55.762266874313354                 | 114.32732343673706                 | 260.98560070991516                 |
+| `Success Rate (%)`             | 67.0                               | 66.0                               | 88.0                               | 98.0                               |
+| `Average Best Fitness`         | -0.980204931140019                 | -0.9794249826693925                | -0.9946680287966604                | -0.9992923811056188                |
+| `Best Solution Found`          | -0.99999999999943                  | -1.0                               | -1.0                               | -0.9999999999999998                |
+| `Chromosome for Best Solution` | [-2.150870537723986e-09, 1.2537300101991205e-07] | [5.110254744307705e-10, 1.401576822006087e-09] | [-5.579270544899776e-10, 1.397761252045926e-09] | [-2.3520112836471112e-09, -1.5440200181792199e-09] |
+| `Mean of Optimal Points`       | [-6.199480807987171e-05, -5.394110083363191e-05] | [-0.0001357890410971659, 0.00028054367746785337] | [5.213785344044782e-05, 8.376101174055558e-05] | [8.04094334594194e-05, -8.565309660534587e-06] |
+| `Standard Deviation of Optimal Points` | [0.0015690021797839055, 0.001215205333742817] | [0.0006586359203090773, 0.0008647967860396557] | [0.000420247490047234, 0.0003959220429625053] | [0.0005975047169587559, 0.0001304449854207518] |
+
+### Gráficos Gerados
+
+#### Sucesso vs. Tamanho da População
+![Success Rate vs. Population Size](./02_PopulationSizeVariation/Drop-Wave/success_rate_vs_population.png)
+
+#### Tempo de Execução vs. Tamanho da População
+![Execution Time vs. Population Size](./02_PopulationSizeVariation/Drop-Wave/execution_time_vs_population.png)
+
+#### Diversidade Média vs. Tamanho da População
+![Average Diversity vs. Population Size](./02_PopulationSizeVariation/Drop-Wave/diversity_vs_population.png)
+
+#### Curvas de Convergência para Diferentes Tamanhos de População
+![Convergence Curves for Different Population Sizes](./02_PopulationSizeVariation/Drop-Wave/convergence_curves_all_populations.png)
+
+---
+
 
