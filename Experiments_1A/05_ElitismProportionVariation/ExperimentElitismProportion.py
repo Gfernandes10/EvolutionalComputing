@@ -10,7 +10,7 @@ import numpy as np
 
 def main():
     # Define the elitism proportions to test
-    elitism_proportions = [0.0, 0.1, 0.2, 0.3]  # Proportions of elites/population
+    elitism_proportions = [0.1, 0.2, 0.3, 0.4]  # Proportions of elites/population
     fitness_function = 'Levi'  # Example fitness function
     population_size = 200  # Fixed population size
     num_executions = 100  # Number of executions for each elitism proportion
@@ -50,7 +50,7 @@ def main():
     plot_success_rate_vs_elitism_proportion(data, results_dir, optimal_solution=optimal_solution)
     
     # Define the elitism proportions to test
-    elitism_proportions = [0.0, 0.1, 0.2, 0.3]  # Proportions of elites/population
+    elitism_proportions = [0.1, 0.2, 0.3, 0.4]  # Proportions of elites/population
     fitness_function = 'Drop-Wave'  # Example fitness function
     num_executions = 100  # Number of executions for each elitism proportion
     population_size = 200  # Fixed population size
@@ -255,7 +255,7 @@ def plot_diversity_curves(results_dir):
     plt.grid(linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "diversity_curves_std_dev.png"))
-    plt.show(block=False)
+
 
     # Euclidean Diversity Curves
     plt.figure()
@@ -275,7 +275,7 @@ def plot_diversity_curves(results_dir):
     plt.grid(linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "diversity_curves_euclidean.png"))
-    plt.show(block=False)
+
 
 def plot_success_rate_vs_elitism_proportion(data, results_dir, optimal_solution=None, tolerance=1e-2):
     """

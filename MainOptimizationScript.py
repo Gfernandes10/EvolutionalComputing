@@ -520,6 +520,10 @@ class MainOptimizationScript:
         """
         Plot the distribution of optimal points and their mean and standard deviation.
         """
+        if len(optimal_points) == 0:
+            print("No optimal points to plot.")
+            return
+
         fig = plt.figure()  # Create a new figure
         plt.scatter(optimal_points[:, 0], optimal_points[:, 1], label="Optimal Points", alpha=0.6, color='blue')
         plt.errorbar(mean_point[0], mean_point[1], xerr=std_point[0], yerr=std_point[1], 

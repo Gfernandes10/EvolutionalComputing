@@ -293,7 +293,7 @@ Resultados do Experimento
 ### Experimento 2
 O segundo experimento consistiu em variar a população inicial para cada uma das funções custo utilizadas. Para fazer isso de uma forma estrutura foi implementado o script [ExperimentPopulationSize.py](./02_PopulationSizeVariation/ExperimentPopulationSize.py).
 
-Esse script vai executar os passos anteriormente explecitados enquanto varia a população inicial em: [50, 100, 200, 400]
+Esse script vai executar os passos anteriormente explicitados enquanto varia a população inicial em: [50, 100, 200, 400]
 
 Os resultados podem ser encontrados em [02_PopulationSizeVariation](./02_PopulationSizeVariation/), mas as informações principais são apresentadas a seguir.
 
@@ -402,5 +402,333 @@ Resultados:
 ![Convergence Curves for Different Population Sizes](./02_PopulationSizeVariation/Drop-Wave/convergence_curves_all_populations.png)
 
 ---
+### Experimento 3
+O terceiro experimento consistiu em variar a taxa de cruzamento. Para fazer isso de uma forma estrutura foi implementado o script [ExperimentCrossoverRate.py](./03_CrossoverRateVariation/ExperimentCrossoverRate.py).
+
+Esse script vai executar os passos de execução do algorítimo genético  enquanto varia a taxa de cruzamento em: [0.2, 0.4, 0.6, 0.8]
+
+Os resultados podem ser encontrados em [03_CrossoverRateVariation](./03_CrossoverRateVariation/), mas as informações principais são apresentadas a seguir.
 
 
+#### <ins> Função Levi</ins>
+Configuração:
+
+| Parâmetro                      | Valor                              |
+|--------------------------------|------------------------------------|
+| `POPULATION_SIZE`              | 200                                |
+| `GENERATION_COUNT`             | 100                                |
+| `CHROMOSOME_LENGTH`            | 2                                  |
+| `LOWER_BOUND`                  | -100                               |
+| `UPPER_BOUND`                  | 100                                |
+| `FITNESS_FUNCTION_SELECTION`   | Levi                               |
+| `SELECTION_METHOD`             | Random                             |
+| `SELECTION_TOURNAMENT_SIZE`    | 10                                 |
+| `CROSSOVER_METHOD`             | Random                             |
+| `CROSSOVER_RATE`               | 0.2 0.4 0.6 0.8                   |
+| `MUTATION_METHOD`              | Random                             |
+| `MUTATION_RATE`                | 0.1                                |
+| `OPTIMIZATION_METHOD`          | Elitism                            |
+| `OPTIMIZATION_METHOD_NUMBER_ELITES` | 20                          |
+| `NUM_EXECUTIONS`               | 100                                |
+| `OPTIMAL_SOLUTION`             | [1, 1]                             |
+| `TOLERANCE`                    | 0.01                               |
+| `ENABLE_FITNESS_FUNCTION_VISUALIZATION` | False                   |
+| `IDENTIFIER`                   | LeviExperiment_CR20                |
+
+Resultados:
+
+| Métrica                        | Valor (CR 0.2)                     | Valor (CR 0.4)                     | Valor (CR 0.6)                     | Valor (CR 0.8)                     | 
+|--------------------------------|------------------------------------|------------------------------------|------------------------------------|------------------------------------|
+| `Total Execution Time (s)`     | 48.228148460388184                 | 49.49453020095825                  | 50.60233998298645                  | 51.648521184921265                 |
+| `Success Rate (%)`             | 98.0                               | 100.0                              | 100.0                              | 100.0                              |
+| `Average Best Fitness`         | 0.00030693809365380567             | 0.00016009818394668377             | 3.893211403434806e-05              | 6.717681490268055e-06              |
+| `Best Solution Found`          | 1.4642394243252776e-07             | 1.850625972393934e-08              | 1.1401917115114965e-09             | 4.802642593353976e-13              |
+| `Chromosome for Best Solution` | [0.9999849772778537, 0.9996448224598866] | [1.0000143430143298, 1.0000051941919639] | [0.9999982287686628, 0.9999707018303328] | [1.0000000663278827, 1.000000291689727] |
+| `Mean of Optimal Points`       | [1.0000511135218595, 1.0000178000336184] | [1.000106539459325, 0.9998214685570213] | [1.0001247963164155, 1.000113624330652] | [0.9999833644398154, 0.999974880760946] |
+| `Standard Deviation of Optimal Points` | [0.0013721943413688767, 0.0022036166406925756] | [0.001317891759408302, 0.0017539252978811509] | [0.0006404612788528389, 0.0008238176350856776] | [0.0002697208770926505, 0.0003968642486789746] |
+
+### Gráficos Gerados
+
+#### Sucesso vs. Taxa de Cruzamento
+![Success Rate vs. Crossover Rate](./03_CrossoverRateVariation/Levi/success_rate_vs_crossover_rate.png)
+
+#### Tempo de Execução vs. Taxa de Cruzamento
+![Execution Time vs. Crossover Rate](./03_CrossoverRateVariation/Levi/execution_time_vs_crossover_rate.png)
+
+#### Diversidade Média vs. Taxa de Cruzamento
+![Average Diversity vs. Crossover Rate](./03_CrossoverRateVariation/Levi/diversity_vs_crossover_rate.png)
+
+#### Curvas de Convergência para Diferentes Taxas de Cruzamento
+![Convergence Curves for Different Crossover Rates](./03_CrossoverRateVariation/Levi/convergence_curves_all_crossover_rates.png)
+
+#### <ins> Função Drop-Wave</ins>
+Configuração:
+
+| Parâmetro                      | Valor                              |
+|--------------------------------|------------------------------------|
+| `POPULATION_SIZE`              | 200                                |
+| `GENERATION_COUNT`             | 200                                |
+| `CHROMOSOME_LENGTH`            | 2                                  |
+| `LOWER_BOUND`                  | -100                               |
+| `UPPER_BOUND`                  | 100                                |
+| `FITNESS_FUNCTION_SELECTION`   | Drop-Wave                          |
+| `SELECTION_METHOD`             | Random                             |
+| `SELECTION_TOURNAMENT_SIZE`    | 10                                 |
+| `CROSSOVER_METHOD`             | Random                             |
+| `CROSSOVER_RATE`               | 0.2 0.4 0.6 0.8                   |
+| `MUTATION_METHOD`              | Random                             |
+| `MUTATION_RATE`                | 0.1                                |
+| `OPTIMIZATION_METHOD`          | Elitism                            |
+| `OPTIMIZATION_METHOD_NUMBER_ELITES` | 20                          |
+| `NUM_EXECUTIONS`               | 100                                |
+| `OPTIMAL_SOLUTION`             | [0, 0]                             |
+| `TOLERANCE`                    | 0.01                               |
+| `ENABLE_FITNESS_FUNCTION_VISUALIZATION` | False                   |
+| `IDENTIFIER`                   | Drop-WaveExp_CR20                  |
+
+Resultados:
+
+| Métrica                        | Valor (CR 0.2)                     | Valor (CR 0.4)                     | Valor (CR 0.6)                     | Valor (CR 0.8)                     | 
+|--------------------------------|------------------------------------|------------------------------------|------------------------------------|------------------------------------|
+| `Total Execution Time (s)`     | 95.26983642578125                  | 98.79219198226929                  | 101.0256679058075                  | 100.18523359298706                 |
+| `Success Rate (%)`             | 67.0                               | 69.0                               | 69.0                               | 82.0                               |
+| `Average Best Fitness`         | -0.9804223691231256                | -0.9818338594675967                | -0.9834726646545026                | -0.9889905693487635                |
+| `Best Solution Found`          | -0.9999997909318954                | -0.9999999959277033                | -0.9999999999999809                | -1.0                               |
+| `Chromosome for Best Solution` | [-7.39395085033307e-05, -1.7330478290933536e-05] | [2.392874073023714e-07, -1.059631830150579e-05] | [-6.015759814972612e-10, 2.2936812621326693e-08] | [4.730365854521187e-12, 4.665374578432198e-11] |
+| `Mean of Optimal Points`       | [-0.00027809547833298055, 0.0003140420725221098] | [-1.5583891157953607e-05, 0.00016969272682033015] | [0.000129949280166672, 0.00025699600444634564] | [-5.78694009985157e-05, 5.102668585786947e-05] |
+| `Standard Deviation of Optimal Points` | [0.002001829999174437, 0.0027641386773536378] | [0.001193410728037605, 0.001331090199682656] | [0.0006149528835635319, 0.00113100987766833] | [0.00041218136304147683, 0.00038002652517376873] |
+
+### Gráficos Gerados
+
+#### Sucesso vs. Taxa de Cruzamento
+![Success Rate vs. Crossover Rate](./03_CrossoverRateVariation/Drop-Wave/success_rate_vs_crossover_rate.png)
+
+#### Tempo de Execução vs. Taxa de Cruzamento
+![Execution Time vs. Crossover Rate](./03_CrossoverRateVariation/Drop-Wave/execution_time_vs_crossover_rate.png)
+
+#### Diversidade Média vs. Taxa de Cruzamento
+![Average Diversity vs. Crossover Rate](./03_CrossoverRateVariation/Drop-Wave/diversity_vs_crossover_rate.png)
+
+#### Curvas de Convergência para Diferentes Taxas de Cruzamento
+![Convergence Curves for Different Crossover Rates](./03_CrossoverRateVariation/Drop-Wave/convergence_curves_all_crossover_rates.png)
+
+---
+### Experimento 4
+O quarto experimento consistiu em variar a taxa de mutação. Para fazer isso de uma forma estrutura foi implementado o script [ExperimentMutationRate.py](./04_MutationRateVariation/ExperimentMutationRate.py).
+
+Esse script vai executar os passos de execução do algorítimo genético  enquanto varia a taxa de cruzamento em: [0.05, 0.1, 0.15, 0.2]
+
+Os resultados podem ser encontrados em [04_MutationRateVariation](./04_MutationRateVariation/), mas as informações principais são apresentadas a seguir.
+
+#### <ins> Função Levi</ins>
+Configuração:
+
+| Parâmetro                      | Valor                              |
+|--------------------------------|------------------------------------|
+| `POPULATION_SIZE`              | 200                                |
+| `GENERATION_COUNT`             | 100                                |
+| `CHROMOSOME_LENGTH`            | 2                                  |
+| `LOWER_BOUND`                  | -100                               |
+| `UPPER_BOUND`                  | 100                                |
+| `FITNESS_FUNCTION_SELECTION`   | Levi                               |
+| `SELECTION_METHOD`             | Random                             |
+| `SELECTION_TOURNAMENT_SIZE`    | 10                                 |
+| `CROSSOVER_METHOD`             | Random                             |
+| `CROSSOVER_RATE`               | 0.8                                |
+| `MUTATION_METHOD`              | Random                             |
+| `MUTATION_RATE`                | 0.05 0.1 0.15 0.2                 |
+| `OPTIMIZATION_METHOD`          | Elitism                            |
+| `OPTIMIZATION_METHOD_NUMBER_ELITES` | 20                          |
+| `NUM_EXECUTIONS`               | 100                                |
+| `OPTIMAL_SOLUTION`             | [1, 1]                             |
+| `TOLERANCE`                    | 0.01                               |
+| `ENABLE_FITNESS_FUNCTION_VISUALIZATION` | False                   |
+| `IDENTIFIER`                   | LeviExperiment_MR5                 |
+
+Resultados:
+
+| Métrica                        | Valor (MR 0.05)                    | Valor (MR 0.1)                     | Valor (MR 0.15)                    | Valor (MR 0.2)                     | 
+|--------------------------------|------------------------------------|------------------------------------|------------------------------------|------------------------------------|
+| `Total Execution Time (s)`     | 63.64865803718567                  | 57.57697606086731                  | 65.21808528900146                  | 66.68169617652893                  |
+| `Success Rate (%)`             | 100.0                              | 100.0                              | 100.0                              | 100.0                              |
+| `Average Best Fitness`         | 1.8155518074823477e-05             | 6.262022127793411e-06              | 1.1006784668010278e-05             | 1.6989383898487343e-05             |
+| `Best Solution Found`          | 2.2871346276861776e-15             | 9.843054514000198e-15              | 7.266389188779052e-14              | 9.607534749761284e-13              |
+| `Chromosome for Best Solution` | [1.0000000049013311, 0.9999999886320652] | [0.9999999895821257, 0.9999999903045482] | [0.9999999718137011, 1.000000036051484] | [1.0000000075795743, 0.9999990224556528] |
+| `Mean of Optimal Points`       | [1.000062268644595, 1.0000715495089059] | [1.0000166359933704, 1.000058596135597] | [1.0000053407649627, 0.9999727171936326] | [0.999982743277974, 0.9999620052553335] |
+| `Standard Deviation of Optimal Points` | [0.00043832215474291645, 0.0007391569729526776] | [0.00025798412918568646, 0.0005053260415023057] | [0.0003478845506749992, 0.0003642856429780684] | [0.00043009413996225284, 0.0005882668552716354] |
+
+### Gráficos Gerados
+
+#### Sucesso vs. Taxa de Mutação
+![Success Rate vs. Mutation Rate](./04_MutationRateVariation/Levi/success_rate_vs_mutation_rate.png)
+
+#### Tempo de Execução vs. Taxa de Mutação
+![Execution Time vs. Mutation Rate](./04_MutationRateVariation/Levi/execution_time_vs_mutation_rate.png)
+
+#### Diversidade Média vs. Taxa de Mutação
+![Average Diversity vs. Mutation Rate](./04_MutationRateVariation/Levi/diversity_vs_mutation_rate.png)
+
+#### Curvas de Convergência para Diferentes Taxas de Mutação
+![Convergence Curves for Different Mutation Rates](./04_MutationRateVariation/Levi/convergence_curves_all_mutation_rates.png)
+
+#### <ins> Função Drop-Wave</ins>
+Configuração:
+
+| Parâmetro                      | Valor                              |
+|--------------------------------|------------------------------------|
+| `POPULATION_SIZE`              | 200                                |
+| `GENERATION_COUNT`             | 200                                |
+| `CHROMOSOME_LENGTH`            | 2                                  |
+| `LOWER_BOUND`                  | -100                               |
+| `UPPER_BOUND`                  | 100                                |
+| `FITNESS_FUNCTION_SELECTION`   | Drop-Wave                          |
+| `SELECTION_METHOD`             | Random                             |
+| `SELECTION_TOURNAMENT_SIZE`    | 10                                 |
+| `CROSSOVER_METHOD`             | Random                             |
+| `CROSSOVER_RATE`               | 0.8                                |
+| `MUTATION_METHOD`              | Random                             |
+| `MUTATION_RATE`                | 0.05 0.1 0.15 0.2                 |
+| `OPTIMIZATION_METHOD`          | Elitism                            |
+| `OPTIMIZATION_METHOD_NUMBER_ELITES` | 20                          |
+| `NUM_EXECUTIONS`               | 100                                |
+| `OPTIMAL_SOLUTION`             | [0, 0]                             |
+| `TOLERANCE`                    | 0.01                               |
+| `ENABLE_FITNESS_FUNCTION_VISUALIZATION` | False                   |
+| `IDENTIFIER`                   | Drop-WaveExperiment_MR5            |
+
+Resultados:
+
+| Métrica                        | Valor (MR 0.05)                    | Valor (MR 0.1)                     | Valor (MR 0.15)                    | Valor (MR 0.2)                     | 
+|--------------------------------|------------------------------------|------------------------------------|------------------------------------|------------------------------------|
+| `Total Execution Time (s)`     | 113.43129873275757                 | 116.88155484199524                 | 105.64892077445984                 | 111.53991603851318                 |
+| `Success Rate (%)`             | 87.0                               | 96.0                               | 96.0                               | 100.0                              |
+| `Average Best Fitness`         | -0.9922297467129111                | -0.997388692717553                 | -0.9978793601188424                | -0.9999985210655103                |
+| `Best Solution Found`          | -1.0                               | -1.0                               | -1.0                               | -1.0                               |
+| `Chromosome for Best Solution` | [2.4388040545491236e-10, 8.44684146518145e-10] | [7.41533368558058e-10, 9.376036987802425e-10] | [-1.1355374296179785e-09, -7.831705304395526e-11] | [7.295278892406775e-10, 1.328472962464868e-10] |
+| `Mean of Optimal Points`       | [8.478836201469852e-05, -3.993713372039226e-05] | [-0.00016810447760392825, 1.7143527631831191e-06] | [3.953382214891979e-05, -1.1649485822599492e-05] | [-2.0555567776670262e-05, -5.771386333605411e-07] |
+| `Standard Deviation of Optimal Points` | [0.0004835791024148683, 0.00047994617813158026] | [0.0011904347023247042, 0.0005590537145584015] | [0.00025581721354650224, 0.0002100179023348101] | [0.00014868434998470585, 0.00013516110673886163] |
+
+### Gráficos Gerados
+
+#### Sucesso vs. Taxa de Mutação
+![Success Rate vs. Mutation Rate](./04_MutationRateVariation/Drop-Wave/success_rate_vs_mutation_rate.png)
+
+#### Tempo de Execução vs. Taxa de Mutação
+![Execution Time vs. Mutation Rate](./04_MutationRateVariation/Drop-Wave/execution_time_vs_mutation_rate.png)
+
+#### Diversidade Média vs. Taxa de Mutação
+![Average Diversity vs. Mutation Rate](./04_MutationRateVariation/Drop-Wave/diversity_vs_mutation_rate.png)
+
+#### Curvas de Convergência para Diferentes Taxas de Mutação
+![Convergence Curves for Different Mutation Rates](./04_MutationRateVariation/Drop-Wave/convergence_curves_all_mutation_rates.png)
+
+
+### Experimento 5
+O quinto experimento consistiu em variar a proporção de individuos definidos como "elites" em relação a população inicial. Para fazer isso de uma forma estrutura foi implementado o script [ExperimentElitismProportion.py](./05_ElitismProportionVariation/ExperimentElitismProportion.py).
+
+Esse script vai executar os passos de execução do algorítimo genético  enquanto varia a proporção de elites em: [0.1, 0.2, 0.3, 0.4]
+
+Os resultados podem ser encontrados em [05_ElitismProportionVariation](./05_ElitismProportionVariation/), mas as informações principais são apresentadas a seguir.
+
+
+#### <ins> Função Levi</ins>
+Configuração:
+
+| Parâmetro                      | Valor                              |
+|--------------------------------|------------------------------------|
+| `POPULATION_SIZE`              | 200                                |
+| `GENERATION_COUNT`             | 100                                |
+| `CHROMOSOME_LENGTH`            | 2                                  |
+| `LOWER_BOUND`                  | -100                               |
+| `UPPER_BOUND`                  | 100                                |
+| `FITNESS_FUNCTION_SELECTION`   | Levi                               |
+| `SELECTION_METHOD`             | Random                             |
+| `SELECTION_TOURNAMENT_SIZE`    | 10                                 |
+| `CROSSOVER_METHOD`             | Random                             |
+| `CROSSOVER_RATE`               | 0.8                                |
+| `MUTATION_METHOD`              | Random                             |
+| `MUTATION_RATE`                | 0.1                                |
+| `OPTIMIZATION_METHOD`          | Elitism                            |
+| `OPTIMIZATION_METHOD_NUMBER_ELITES` | 20 40 60 80                  |
+| `NUM_EXECUTIONS`               | 100                                |
+| `OPTIMAL_SOLUTION`             | [1, 1]                             |
+| `TOLERANCE`                    | 0.01                               |
+| `ENABLE_FITNESS_FUNCTION_VISUALIZATION` | False                   |
+| `IDENTIFIER`                   | LeviExp_EP10                       |
+
+Resultados:
+
+| Métrica                        | Valor (EP 10%)                    | Valor (EP 20%)                    | Valor (EP 30%)                    | Valor (EP 40%)                    | 
+|--------------------------------|------------------------------------|------------------------------------|------------------------------------|------------------------------------|
+| `Total Execution Time (s)`     | 49.154149532318115                 | 53.634897232055664                 | 59.30273962020874                  | 63.667489528656006                 |
+| `Success Rate (%)`             | 100.0                              | 100.0                              | 100.0                              | 100.0                              |
+| `Average Best Fitness`         | 7.268079042260288e-06              | 4.581632915155468e-06              | 1.0873428498978745e-05             | 9.158646991154204e-06              |
+| `Best Solution Found`          | 2.4297301516733986e-18             | 5.015575339596988e-14              | 4.851622446231831e-18              | 1.0112032540933745e-16             |
+| `Chromosome for Best Solution` | [1.0000000001053546, 1.0000000011969514] | [0.9999999810556681, 0.9999998661413136] | [1.0000000002305087, 0.9999999997193532] | [0.9999999999311189, 1.0000000100346467] |
+| `Mean of Optimal Points`       | [1.0000191916148697, 1.0000423331021095] | [1.0000251939121447, 0.9999892990740349] | [1.0000019269521332, 1.0000238510634842] | [1.0000343968364158, 1.0000325010985378] |
+| `Standard Deviation of Optimal Points` | [0.000276977239385058, 0.0005848950437874454] | [0.0002123960386449826, 0.0006871396206837133] | [0.0003461499136057992, 0.0003315868103414719] | [0.00031248194663649313, 0.000529845885614189] |
+
+### Gráficos Gerados
+
+#### Sucesso vs. Proporção de Elites
+![Success Rate vs. Elitism Proportion](./05_ElitismProportionVariation/Levi/success_rate_vs_elitism_proportion.png)
+
+#### Tempo de Execução vs. Proporção de Elites
+![Execution Time vs. Elitism Proportion](./05_ElitismProportionVariation/Levi/execution_time_vs_elitism_proportion.png)
+
+#### Diversidade Média vs. Proporção de Elites
+![Average Diversity vs. Elitism Proportion](./05_ElitismProportionVariation/Levi/diversity_vs_elitism_proportion.png)
+
+#### Curvas de Convergência para Diferentes Proporções de Elites
+![Convergence Curves for Different Elitism Proportions](./05_ElitismProportionVariation/Levi/convergence_curves_all_elitism_proportions.png)
+
+#### <ins> Função Drop-Wave</ins>
+Configuração:
+
+| Parâmetro                      | Valor                              |
+|--------------------------------|------------------------------------|
+| `POPULATION_SIZE`              | 200                                |
+| `GENERATION_COUNT`             | 200                                |
+| `CHROMOSOME_LENGTH`            | 2                                  |
+| `LOWER_BOUND`                  | -100                               |
+| `UPPER_BOUND`                  | 100                                |
+| `FITNESS_FUNCTION_SELECTION`   | Drop-Wave                          |
+| `SELECTION_METHOD`             | Random                             |
+| `SELECTION_TOURNAMENT_SIZE`    | 10                                 |
+| `CROSSOVER_METHOD`             | Random                             |
+| `CROSSOVER_RATE`               | 0.8                                |
+| `MUTATION_METHOD`              | Random                             |
+| `MUTATION_RATE`                | 0.1                                |
+| `OPTIMIZATION_METHOD`          | Elitism                            |
+| `OPTIMIZATION_METHOD_NUMBER_ELITES` | 20 40 60 80                  |
+| `NUM_EXECUTIONS`               | 100                                |
+| `OPTIMAL_SOLUTION`             | [0, 0]                             |
+| `TOLERANCE`                    | 0.01                               |
+| `ENABLE_FITNESS_FUNCTION_VISUALIZATION` | False                   |
+| `IDENTIFIER`                   | Drop-WaveExp_EP10                  |
+
+Resultados:
+
+| Métrica                        | Valor (EP 10%)                    | Valor (EP 20%)                    | Valor (EP 30%)                    | Valor (EP 40%)                    | 
+|--------------------------------|------------------------------------|------------------------------------|------------------------------------|------------------------------------|
+| `Total Execution Time (s)`     | 98.95973777770996                  | 103.28781819343567                 | 121.37364840507507                 | 133.1347851753235                 |
+| `Success Rate (%)`             | 87.0                               | 86.0                               | 90.0                               | 93.0                               |
+| `Average Best Fitness`         | -0.9924922223968047                | -0.9910399096521231                | -0.9940474399357737                | -0.9955427512751944                |
+| `Best Solution Found`          | -1.0                               | -1.0                               | -1.0                               | -1.0                               |
+| `Chromosome for Best Solution` | [-8.958218660318589e-10, -1.4088726616697334e-10] | [2.198354260466937e-10, -8.179038490174246e-10] | [-1.5394038227797313e-10, -2.678432020202786e-10] | [-1.3958852765745515e-09, -4.544971627525049e-10] |
+| `Mean of Optimal Points`       | [6.207775612158132e-05, -0.0001100970356825456] | [5.126529242647239e-05, 9.365613835378687e-05] | [-5.967528707031825e-05, -3.5792985485703674e-05] | [6.427660614091573e-05, 4.823646797097185e-05] |
+| `Standard Deviation of Optimal Points` | [0.00036873144562788227, 0.0009516617488339543] | [0.0008101136078005096, 0.0006614068303177757] | [0.0005006058106672425, 0.00030800788647086704] | [0.0005857361590232405, 0.0004203499385424038] |
+
+### Gráficos Gerados
+
+#### Sucesso vs. Proporção de Elites
+![Success Rate vs. Elitism Proportion](./05_ElitismProportionVariation/Drop-Wave/success_rate_vs_elitism_proportion.png)
+
+#### Tempo de Execução vs. Proporção de Elites
+![Execution Time vs. Elitism Proportion](./05_ElitismProportionVariation/Drop-Wave/execution_time_vs_elitism_proportion.png)
+
+#### Diversidade Média vs. Proporção de Elites
+![Average Diversity vs. Elitism Proportion](./05_ElitismProportionVariation/Drop-Wave/diversity_vs_elitism_proportion.png)
+
+#### Curvas de Convergência para Diferentes Proporções de Elites
+![Convergence Curves for Different Elitism Proportions](./05_ElitismProportionVariation/Drop-Wave/convergence_curves_all_elitism_proportions.png)
