@@ -81,21 +81,21 @@ The flowchart below describes the operation of the `multiple_optimization` funct
 
 ```mermaid
 flowchart TD
-    A[Start] --> B[Visualize fitness function]
-    B --> C[Reset results and metrics]
-    C --> D[Start timer and execution loop]
-    D --> E[Run optimization with elitism (elitism_optimization)]
-    E --> F[Store execution results]
-    F --> G[Update best overall result]
-    G --> H{Optimal solution found?}
-    H -->|Yes| I[Increment success counter]
-    H -->|No| J[Continue]
+    A[Start] --> B["Visualize fitness function"]
+    B --> C["Reset results and metrics"]
+    C --> D["Start timer and execution loop"]
+    D --> E["Run optimization with elitism ('elitism_optimization')"]
+    E --> F["Store execution results"]
+    F --> G["Update best overall result"]
+    G --> H{"Optimal solution found?"}
+    H -->|Yes| I["Increment success counter"]
+    H -->|No| J["Continue"]
     I --> J
-    J --> K[Update aggregated metrics]
-    K --> L{All executions completed?}
+    J --> K["Update aggregated metrics"]
+    K --> L{"All executions completed?"}
     L -->|No| E
-    L -->|Yes| M[Calculate final metrics]
-    M --> N[Generate graphs and save results]
+    L -->|Yes| M["Calculate final metrics"]
+    M --> N["Generate graphs and save results"]
     N --> O[End]
 ```
 

@@ -73,23 +73,24 @@ O fluxograma abaixo descreve o funcionamento da função `multiple_optimization`
 
 ```mermaid
 flowchart TD
-    A[Início] --> B[Visualizar função de fitness]
-    B --> C[Resetar resultados e métricas]
-    C --> D[Iniciar temporizador e loop de execuções]
-    D --> E[Executar otimização com elitismo (elitism_optimization)]
-    E --> F[Armazenar resultados da execução]
-    F --> G[Atualizar melhor resultado geral]
-    G --> H{Solução ótima encontrada?}
-    H -->|Sim| I[Incrementar contador de sucesso]
-    H -->|Não| J[Continuar]
+    A[Início] --> B["Visualizar função de fitness"]
+    B --> C["Resetar resultados e métricas"]
+    C --> D["Iniciar temporizador e loop de execuções"]
+    D --> E["Executar otimização com elitismo ('elitism_optimization')"]
+    E --> F["Armazenar resultados da execução"]
+    F --> G["Atualizar melhor resultado geral"]
+    G --> H{"Solução ótima encontrada?"}
+    H -->|Sim| I["Incrementar contador de sucesso"]
+    H -->|Não| J["Continuar"]
     I --> J
-    J --> K[Atualizar métricas agregadas]
-    K --> L{Todas execuções concluídas?}
+    J --> K["Atualizar métricas agregadas"]
+    K --> L{"Todas execuções concluídas?"}
     L -->|Não| E
-    L -->|Sim| M[Calcular métricas finais]
-    M --> N[Gerar gráficos e salvar resultados]
+    L -->|Sim| M["Calcular métricas finais"]
+    M --> N["Gerar gráficos e salvar resultados"]
     N --> O[Fim]
 ```
+
 
 ### `elitism_optimization`
 
