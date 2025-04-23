@@ -4,7 +4,7 @@
 
 O repositório está organizado da seguinte forma:
 
-- **`MainOptimizationScript.py`**: Contém a implementação principal do algoritmo genético, incluindo as funções de otimização, avaliação de fitness, manutenção de diversidade, e geração de gráficos.
+- **`MainOptimizationScript.py`**: Contém a classe da implementação principal do algoritmo genético, incluindo as funções de otimização, avaliação de fitness, manutenção de diversidade, e geração de gráficos.
 - **`Library`**: Diretório que contém módulos auxiliares, como métodos de seleção, cruzamento e mutação.
 - **`Experiments_1A`**: Diretório onde os resultados dos experimentos são armazenados, incluindo gráficos e tabelas gerados.
 
@@ -18,7 +18,7 @@ from MainOptimizationScript import MainOptimizationScript
 # Inicializa objeto do algoritimo genético
 OptimizationObject = MainOptimizationScript(
     FITNESS_FUNCTION_SELECTION='Levi', 
-    IDENTIFIER="Levi_POP100"
+    IDENTIFIER="LeviExperiment"
 )
 ```
 Uma vez que o objeto está inicializado você pode configurar o script com base nos parâmetros de configuração a seguir.
@@ -50,12 +50,8 @@ Abaixo está a lista de parâmetros de configuração disponíveis no script `Ma
 
 Certifique-se de ajustar os valores desses parâmetros de acordo com os requisitos do seu experimento para obter os melhores resultados.
 
-Uma vez que o objeto está configurado você tem duas opções de execução do algorítimo. Você pode executá-lo uma unica vez através de `single_optimization` ou diversas vezes e ter uma análise estática através da função `multiple_optimization`
+Uma vez que o objeto está configurado você tem duas opções de execução do algorítimo.Você pode executá-lo múltiplas vezes utilizando o método `multiple_optimization`.
 
-### Execução única
-```python
-OptimizationObject.single_optimization
-```
 ### Execução da otimização múltiplas vezes
 Dois argumentos são utilizados na chamada dessa função, são eles:
 
@@ -67,6 +63,7 @@ Dois argumentos são utilizados na chamada dessa função, são eles:
 OptimizationObject.multiple_optimization(num_executions=num_executions, optimal_solution=optimal_solution)
 ```
 
+Utilize o script `Playground.py` para testes específicos no script de algorítimo genético. Este script já está pré-configurado com base nas informações dadas até aqui.
 
 ## Fluxograma das Funções
 
@@ -79,7 +76,7 @@ flowchart TD
     A[Início] --> B[Visualizar função de fitness]
     B --> C[Resetar resultados e métricas]
     C --> D[Iniciar temporizador e loop de execuções]
-    D --> E[Executar otimização com elitismo]
+    D --> E[Executar otimização com elitismo (elitism_optimization)]
     E --> F[Armazenar resultados da execução]
     F --> G[Atualizar melhor resultado geral]
     G --> H{Solução ótima encontrada?}
@@ -157,7 +154,7 @@ O cruzamento é responsável por explorar combinações promissoras de genes.
 
 ### Manutenção de Diversidade
 
-A manutenção de diversidade é aplicada quando a diversidade da população cai abaixo de um limite (`threshold`). As estratégias utilizadas são:
+A manutenção de diversidade é aplicada quando a diversidade da população cai abaixo de um limite. As estratégias utilizadas são:
 
 1. **Reinicialização Parcial**: Substitui uma porcentagem da população por novos indivíduos gerados aleatoriamente.
 2. **Aumento Temporário da Taxa de Mutação**: Multiplica a taxa de mutação por um fator (e.g., 1.5) para introduzir mais variação.
