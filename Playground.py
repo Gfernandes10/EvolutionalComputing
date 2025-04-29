@@ -9,3 +9,7 @@ OptimizationObject = MainOptimizationScript(FITNESS_FUNCTION_SELECTION=fitness_f
 OptimizationObject.POPULATION_SIZE = size
 
 OptimizationObject.multiple_optimization(num_executions=num_executions, optimal_solution=optimal_solution)
+
+# curve = OptimizationObject.RESULTS.Curves[0]
+# OptimizationObject.RESULTS.plot_curve(curve=curve)
+test = 1

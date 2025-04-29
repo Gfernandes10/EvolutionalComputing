@@ -1,0 +1,22 @@
+{
+    "POPULATION_SIZE": 200,
+    "GENERATION_COUNT": 100,
+    "CHROMOSOME_LENGTH": 2,
+    "LOWER_BOUND": -100,
+    "UPPER_BOUND": 100,
+    "FITNESS_FUNCTION_SELECTION": "Levi",
+    "SELECTION_METHOD": "Random",
+    "SELECTION_TOURNAMENT_SIZE": 10,
+    "CROSSOVER_METHOD": "Random",
+    "CROSSOVER_RATE": 0.8,
+    "MUTATION_METHOD": "Random",
+    "MUTATION_RATE": 0.1,
+    "OPTIMIZATION_METHOD": "GeneticAlgorithm_Elitism",
+    "OPTIMIZATION_METHOD_NUMBER_ELITES": 20,
+    "NUM_EXECUTIONS": 10,
+    "OPTIMAL_SOLUTION": [
+        1,
+        1
+    ],
+    "TOLERANCE": 0.01
+}

@@ -1,6 +1,7 @@
 from Library.SelectionMethods import SelectionMethods
 from Library.CrossoverMethods import CrossoverMethods
 from Library.MutationMethods import MutationMethods
+from Library.SaveResultsMethods import Results  # Import the Results class
 import random
 import numpy as np
 from matplotlib import pyplot as plt
@@ -28,6 +29,7 @@ class MainOptimizationScript:
         self.diversity_per_generation = []  # Store diversity metrics
         self.best_fitness_per_generation = []  # Store best fitness per generation
         self.figures = []  # List to store figures for saving
+        self.RESULTS = Results()  # Initialize the RESULTS property
 
         # Validate FITNESS_FUNCTION_SELECTION
         if FITNESS_FUNCTION_SELECTION not in self.ALLOWED_FITNESS_FUNCTIONS:
@@ -47,7 +49,7 @@ class MainOptimizationScript:
         self.MUTATION_METHOD = 'Random'
         self.MUTATION_RATE = 0.1
         self.APPLY_DIVERSITY_MAINTENANCE = True  # Flag to apply diversity maintenance strategies
-        self.OPTIMIZATION_METHOD = 'Elitism'
+        self.OPTIMIZATION_METHOD = 'GeneticAlgorithm_Elitism'
         self.OPTIMIZATION_METHOD_NUMBER_ELITES = 20
         self.IDENTIFIER = IDENTIFIER  # Optional identifier for result folder prefix
         self.STOPPING_METHOD = 'GenerationCount'  # Options: 'GenerationCount', 'TargetFitness', 'NoImprovement'
@@ -88,37 +90,59 @@ class MainOptimizationScript:
             case _:
                 raise ValueError("Invalid FITNESS_FUNCTION_SELECTION")
         return fitness_value
-        
-    def single_optimization(self):
-        """
-        Initialize the single optimization process.
-        """
-        self.visualize_fitness_function()
-
-        self.elitism_optimization()
-
 
     def multiple_optimization(self, num_executions, optimal_solution=None, tolerance=1e-2):
         """
-        Evaluate the performance of the optimization algorithm.
-        :param num_executions: Number of times to run the optimization.
-        :param optimal_solution: Known optimal solution value (if available).
-        :param tolerance: Tolerance for determining success in finding the optimal solution.
+        Evaluate the performance of the optimization algorithm by running it multiple times and analyzing the results.
+        Parameters:
+            num_executions (int): Number of times to run the optimization.
+            optimal_solution (list, optional): Known optimal solution value (if available). Defaults to None.
+            tolerance (float, optional): Tolerance for determining success in finding the optimal solution. Defaults to 1e-2.
+        Attributes:
+            ResultsOverall (list): Stores the results of all executions, including the best solution and fitness.
+            BestResult (dict): Stores the best solution and fitness found across all executions.
+            best_fitness_values (list): Stores the best fitness values for each execution.
+            all_best_fitness_per_generation (list): Stores the best fitness per generation for all executions.
+            all_diversity_per_generation (list): Stores diversity per generation for all executions.
+        Performance Metrics:
+            avg_best_fitness (float): Average of the best fitness values across all executions.
+            success_rate (float): Percentage of executions that successfully found a solution within the tolerance of the optimal solution.
+            execution_time (float): Total time taken to complete all executions.
+            mean_optimal_point (numpy.ndarray): Mean of the optimal points found across all executions.
+            std_optimal_point (numpy.ndarray): Standard deviation of the optimal points found across all executions.
+        Visualization:
+            - Plots the convergence curve with mean and standard deviation.
+            - Plots population diversity with mean and standard deviation.
+            - Visualizes the mean and standard deviation of optimal points.
+        Saves:
+            - Results of all executions.
+            - Configuration parameters used for the optimization.
+            - Performance metrics.
+            - Aggregated metrics for convergence curves and diversity.
+            - Optimal points and their standard deviations.
+        Returns:
+            None
         """
         success_count = 0
         best_fitness_values = []  # Store best fitness values for each execution
         optimal_points = []  # Store all optimal points found
-
-        self.visualize_fitness_function()
         self.ResultsOverall = []  # Reset results for new executions
         best_overall_fitness = float('inf')  # Initialize best fitness as infinity
-
         all_best_fitness_per_generation = []  # Store best fitness per generation for all executions
         all_diversity_per_generation = []  # Store diversity per generation for all executions
 
-        start_time = time.time()  # Start timing
+        self.visualize_fitness_function()
+
+        start_time = time.time()  # Start timing        
         for execution in range(1, num_executions + 1):
-            best_population_fitness = self.elitism_optimization()
+            match self.OPTIMIZATION_METHOD:
+                case 'GeneticAlgorithm_Elitism':
+                    best_population_fitness = self.elitism_optimization()
+                case 'EvolutionaryStrategy':
+                    best_population_fitness = self.evolutionary_strategy_optimization()
+                case _:
+                    raise ValueError(f"Invalid OPTIMIZATION_METHOD: {self.OPTIMIZATION_METHOD}")
+
             # Retrieve the best solution and its fitness value from the last generation
             best_solution = best_population_fitness[0]
             best_fitness = best_population_fitness[1]
@@ -142,56 +166,83 @@ class MainOptimizationScript:
             print(f"Execution {execution}/{num_executions} completed. Best Fitness: {best_fitness:.6f}. Elapsed Time: {elapsed_time:.2f} seconds")
 
             best_fitness_values.append(best_fitness)
-            # optimal_points.append(best_solution)  # Store the best chromosome (optimal point)
 
-            # Check if the solution is within the tolerance of the optimal solution
-            if optimal_solution is not None:
-                distance = sqrt(sum((a - b) ** 2 for a, b in zip(best_solution, optimal_solution)))
-                if distance <= tolerance:
-                    success_count += 1
-                    optimal_points.append(best_solution)  # Store the best chromosome (optimal point)
 
+
+            distance = np.linalg.norm(np.array(best_solution) - np.array(optimal_solution)) 
+            # distance = sqrt(sum((a - b) ** 2 for a, b in zip(best_solution, optimal_solution)))
+            if distance <= tolerance:
+                success_count += 1
+
+            # Store the best chromosome (optimal point)
+            optimal_points.append(best_solution)
             all_best_fitness_per_generation.append(self.best_fitness_per_generation)
             all_diversity_per_generation.append(self.diversity_per_generation)
+
+        end_time = time.time()  # End timing
+        execution_time = end_time - start_time
+
+        self.RESULTS.add_curve(
+            x_data=range(len(all_best_fitness_per_generation[0])),
+            y_data=all_best_fitness_per_generation,
+            x_label="Generation",
+            y_label="Average Best Fitness",
+            name="Aggregated Best Fitness Per Generation",
+            plot_avg=True,
+            plot_std=True
+        )
+        self.RESULTS.add_curve(
+            x_data=range(len(all_diversity_per_generation[0])),
+            y_data=all_diversity_per_generation,
+            x_label="Generation",
+            y_label="Average Diversity",
+            name="Aggregated Diversity Per Generation",
+            plot_avg=True,
+            plot_std=True
+        )
+
+        
+        # Calculate mean and standard deviation of optimal points
+        #ONLY FOR 2D PROBLEMS
+        optimal_points = np.array(optimal_points)
+        self.RESULTS.add_curve(
+            x_data=optimal_points[:,0],
+            y_data=optimal_points[:,1],
+            x_label="X Coordinate",
+            y_label="Y Coordinate",
+            name="Optimal Points Distribution",
+            plot_avg=True,
+            plot_std=True,
+            plotType="scatter"
+        )
+
+        mean_optimal_point = self.RESULTS.Curves[-1]["Avg"]
+        std_optimal_point = self.RESULTS.Curves[-1]["Std"]
 
         # Calculate performance metrics
         avg_best_fitness = np.mean(best_fitness_values)
         success_rate = success_count / num_executions
 
-        end_time = time.time()  # End timing
-        execution_time = end_time - start_time
-        print(f"Total Execution Time: {execution_time:.2f} seconds")
 
         print(f"Performance Metrics:")
+        print(f"Total Execution Time: {execution_time:.2f} seconds")        
         print(f"Success Rate: {success_rate * 100:.2f}%")
         print(f"Average Best Fitness: {avg_best_fitness:.6f}")
         print(f"Best Solution Found: {self.BestResult['BestFitness']}")
         print(f"Chromosome for Best Solution: {self.BestResult['BestSolution']}")
-
-        # Calculate aggregated metrics
-        avg_best_fitness_per_generation = np.mean(all_best_fitness_per_generation, axis=0)
-        std_best_fitness_per_generation = np.std(all_best_fitness_per_generation, axis=0)
-        avg_diversity_per_generation = np.mean(all_diversity_per_generation, axis=0)
-        std_diversity_per_generation = np.std(all_diversity_per_generation, axis=0)
-
-        # Plot aggregated metrics
-        self.plot_convergence_curve(avg_best_fitness_per_generation, std_best_fitness_per_generation)
-        self.plot_population_diversity(avg_diversity_per_generation, std_diversity_per_generation)
-
-        # Calculate mean and standard deviation of optimal points
-        optimal_points = np.array(optimal_points)
-        mean_optimal_point = np.mean(optimal_points, axis=0)
-        std_optimal_point = np.std(optimal_points, axis=0)
-
         print(f"Mean of Optimal Points: {mean_optimal_point}")
         print(f"Standard Deviation of Optimal Points: {std_optimal_point}")
 
-        # Visualize the mean and standard deviation of optimal points
-        self.plot_optimal_points(optimal_points, mean_optimal_point, std_optimal_point)
+        performance_metrics = {
+            "Total Execution Time (s)": execution_time,
+            "Success Rate (%)": success_rate * 100,
+            "Average Best Fitness": avg_best_fitness,
+            "Best Solution Found": self.BestResult['BestFitness'],
+            "Chromosome for Best Solution": self.BestResult['BestSolution'],
+            "Mean of Optimal Points": mean_optimal_point.tolist(),  # Convert numpy array to list
+            "Standard Deviation of Optimal Points": std_optimal_point.tolist()  # Convert numpy array to list
+        }
 
-        # Call the new plot method in `multiple_optimization` after calculating aggregated metrics
-        self.plot_diversity_metrics(avg_diversity_per_generation, self.euclidean_diversity_per_generation)
-        
         # Save results, configuration, and figures
         config = {
             "POPULATION_SIZE": self.POPULATION_SIZE,
@@ -213,38 +264,32 @@ class MainOptimizationScript:
             "TOLERANCE": tolerance
         }
 
-        # Calculate performance metrics
-        avg_best_fitness = np.mean(best_fitness_values)
-        success_rate = success_count / num_executions
-        performance_metrics = {
-            "Total Execution Time (s)": execution_time,
-            "Success Rate (%)": success_rate * 100,
-            "Average Best Fitness": avg_best_fitness,
-            "Best Solution Found": self.BestResult['BestFitness'],
-            "Chromosome for Best Solution": self.BestResult['BestSolution'],
-            "Mean of Optimal Points": mean_optimal_point.tolist(),  # Convert numpy array to list
-            "Standard Deviation of Optimal Points": std_optimal_point.tolist()  # Convert numpy array to list
-        }
 
-        # Prepare curve data and their standard deviations
-        curve_data = {
-            "convergence_curve": avg_best_fitness_per_generation
-        }
-        curve_std_data = {
-            "convergence_curve": std_best_fitness_per_generation
-        }
+        # Store performance metrics in RESULTS
+        self.RESULTS.add_metric("Success Rate (%)", success_rate * 100)
+        self.RESULTS.add_metric("Average Best Fitness", avg_best_fitness)
+        self.RESULTS.add_metric("Best Solution Found", self.BestResult['BestFitness'])
+        self.RESULTS.add_metric("Execution Time (s)", execution_time)
 
-        # Save results, configuration, figures, performance metrics, curve data, and optimal points with their standard deviations
-        self.save_results(
-            self.ResultsOverall,
-            config,
-            performance_metrics,
-            curve_data,
-            optimal_points.tolist(),  # Convert numpy array to list for saving
-            curve_std_data,
-            std_optimal_point.tolist()  # Convert numpy array to list for saving
+
+        # Store configuration in RESULTS
+        self.RESULTS.set_config(config)
+        self.RESULTS.set_performance(performance_metrics)
+
+        # Save results
+        folder_name = f"{self.IDENTIFIER}_" if self.IDENTIFIER else ""
+        # Determine the base directory for saving results
+        if hasattr(self, 'RESULTS_BASE_DIR') and self.RESULTS_BASE_DIR:
+            base_dir = self.RESULTS_BASE_DIR
+            results_dir = os.path.join(base_dir, f"{folder_name}")
+        else:
+            base_dir = "Results"  # Default directory
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            results_dir = os.path.join(base_dir, f"{folder_name}{timestamp}")
+        self.RESULTS.save_results(
+            path=results_dir,
+            overwrite=True
         )
-
 
     def elitism_optimization(self):
         population = []
@@ -321,6 +366,8 @@ class MainOptimizationScript:
                 if no_improvement_count >= self.NO_IMPROVEMENT_LIMIT:
                     print(f"Stopping early: No improvement for {self.NO_IMPROVEMENT_LIMIT} generations.")
                     break
+
+
         
         return best_population_fitness
     
@@ -478,81 +525,6 @@ class MainOptimizationScript:
         plt.title("Fitness Function Visualization")
         plt.show(block=False)  # Allow script to continue without blocking
 
-    def plot_convergence_curve(self, avg_best_fitness, std_best_fitness):
-        """
-        Plot the aggregated convergence curve showing the average best fitness per generation.
-        """
-        fig = plt.figure()  # Create a new figure
-        generations = range(len(avg_best_fitness))
-        plt.plot(generations, avg_best_fitness, label="Average Best Fitness", color='blue')
-        plt.fill_between(generations, 
-                         avg_best_fitness - std_best_fitness, 
-                         avg_best_fitness + std_best_fitness, 
-                         color='blue', alpha=0.2, label="Std Dev")
-        plt.xlabel("Generation")
-        plt.ylabel("Fitness")
-        plt.title("Aggregated Convergence Curve")
-        plt.legend()
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        self.figures.append((fig, "convergence_curve.png"))  # Store the figure and filename
-
-    def plot_population_diversity(self, avg_diversity, std_diversity):
-        """
-        Plot the aggregated diversity of the population over generations.
-        """
-        fig = plt.figure()  # Create a new figure
-        generations = range(len(avg_diversity))
-        plt.plot(generations, avg_diversity, label="Average Diversity", color='orange')
-        plt.fill_between(generations, 
-                         avg_diversity - std_diversity, 
-                         avg_diversity + std_diversity, 
-                         color='orange', alpha=0.2, label="Std Dev")
-        plt.xlabel("Generation")
-        plt.ylabel("Diversity (Standard Deviation)")
-        plt.title("Aggregated Population Diversity")
-        plt.legend()
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        self.figures.append((fig, "population_diversity.png"))  # Store the figure and filename
-
-    def plot_optimal_points(self, optimal_points, mean_point, std_point):
-        """
-        Plot the distribution of optimal points and their mean and standard deviation.
-        """
-        if len(optimal_points) == 0:
-            print("No optimal points to plot.")
-            return
-
-        fig = plt.figure()  # Create a new figure
-        plt.scatter(optimal_points[:, 0], optimal_points[:, 1], label="Optimal Points", alpha=0.6, color='blue')
-        plt.errorbar(mean_point[0], mean_point[1], xerr=std_point[0], yerr=std_point[1], 
-                     fmt='o', color='red', label="Mean ± Std Dev", capsize=5)
-        plt.xlabel("X Coordinate")
-        plt.ylabel("Y Coordinate")
-        plt.title("Optimal Points Distribution")
-        plt.legend()
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        self.figures.append((fig, "optimal_points_distribution.png"))  # Store the figure and filename
-
-    def plot_diversity_metrics(self, std_diversity, euclidean_diversity):
-        """
-        Plot the diversity metrics (standard deviation and Euclidean distance) over generations.
-        """
-        fig = plt.figure()  # Create a new figure
-        generations = range(len(std_diversity))
-        plt.plot(generations, std_diversity, label="Diversity (Std Dev)", color='blue')
-        plt.plot(generations, euclidean_diversity, label="Diversity (Euclidean)", color='green')
-        plt.xlabel("Generation")
-        plt.ylabel("Diversity")
-        plt.title("Diversity Metrics Over Generations")
-        plt.legend()
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        self.figures.append((fig, "diversity_metrics.png"))  # Store the figure and filename
-        # plt.show()  # Display the plot
-        
     def save_results(self, results, config, performance_metrics, curve_data, optimal_points, curve_std_data, optimal_points_std):
         """
         Save results, configuration, figures, performance metrics, curve data, and optimal points with their standard deviations to a timestamped folder.
