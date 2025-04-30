@@ -2,6 +2,7 @@ from Library.SelectionMethods import SelectionMethods
 from Library.CrossoverMethods import CrossoverMethods
 from Library.MutationMethods import MutationMethods
 from Library.SaveResultsMethods import Results  # Import the Results class
+from Library.EvolutionaryStrategies import EvolutionaryStrategies  # Import the EvolutionaryStrategies class
 import random
 import numpy as np
 from matplotlib import pyplot as plt
@@ -39,8 +40,8 @@ class MainOptimizationScript:
         self.POPULATION_SIZE = 200
         self.GENERATION_COUNT = 100        
         self.CHROMOSOME_LENGTH = 2
-        self.LOWER_BOUND = -100
-        self.UPPER_BOUND = 100
+        self.LOWER_BOUND = -5
+        self.UPPER_BOUND = 5
         self.FITNESS_FUNCTION_SELECTION = FITNESS_FUNCTION_SELECTION
         self.SELECTION_METHOD = 'Random'
         self.SELECTION_TOURNAMENT_SIZE = 10
@@ -49,12 +50,16 @@ class MainOptimizationScript:
         self.MUTATION_METHOD = 'Random'
         self.MUTATION_RATE = 0.1
         self.APPLY_DIVERSITY_MAINTENANCE = True  # Flag to apply diversity maintenance strategies
-        self.OPTIMIZATION_METHOD = 'GeneticAlgorithm_Elitism'
+        self.OPTIMIZATION_METHOD = 'EvolutionaryStrategy' #Options: 'GeneticAlgorithm_Elitism', 'EvolutionaryStrategy'
         self.OPTIMIZATION_METHOD_NUMBER_ELITES = 20
         self.IDENTIFIER = IDENTIFIER  # Optional identifier for result folder prefix
         self.STOPPING_METHOD = 'GenerationCount'  # Options: 'GenerationCount', 'TargetFitness', 'NoImprovement'
         self.TARGET_FITNESS = None  # Desired fitness value for stopping
         self.NO_IMPROVEMENT_LIMIT = None  # Max generations without improvement
+
+        ## Parameters for Evolutionary Strategy
+        self.ES_MU = 20  # Number of parents in ES
+        self.ES_LAMBDA = 100  # Number of offspring in ES
 
 
 
@@ -163,7 +168,7 @@ class MainOptimizationScript:
 
             # Print progress information
             elapsed_time = time.time() - start_time
-            print(f"Execution {execution}/{num_executions} completed. Best Fitness: {best_fitness:.6f}. Elapsed Time: {elapsed_time:.2f} seconds")
+            print(f"Execution {execution}/{num_executions} completed. Best Fitness: {best_fitness:.6f}. Best Solution: {best_solution} Elapsed Time: {elapsed_time:.2f} seconds")
 
             best_fitness_values.append(best_fitness)
 
@@ -244,25 +249,45 @@ class MainOptimizationScript:
         }
 
         # Save results, configuration, and figures
-        config = {
-            "POPULATION_SIZE": self.POPULATION_SIZE,
-            "GENERATION_COUNT": self.GENERATION_COUNT,
-            "CHROMOSOME_LENGTH": self.CHROMOSOME_LENGTH,
-            "LOWER_BOUND": self.LOWER_BOUND,
-            "UPPER_BOUND": self.UPPER_BOUND,
-            "FITNESS_FUNCTION_SELECTION": self.FITNESS_FUNCTION_SELECTION,
-            "SELECTION_METHOD": self.SELECTION_METHOD,
-            "SELECTION_TOURNAMENT_SIZE": self.SELECTION_TOURNAMENT_SIZE,
-            "CROSSOVER_METHOD": self.CROSSOVER_METHOD,
-            "CROSSOVER_RATE": self.CROSSOVER_RATE,
-            "MUTATION_METHOD": self.MUTATION_METHOD,
-            "MUTATION_RATE": self.MUTATION_RATE,
-            "OPTIMIZATION_METHOD": self.OPTIMIZATION_METHOD,
-            "OPTIMIZATION_METHOD_NUMBER_ELITES": self.OPTIMIZATION_METHOD_NUMBER_ELITES,
-            "NUM_EXECUTIONS": num_executions,
-            "OPTIMAL_SOLUTION": optimal_solution,
-            "TOLERANCE": tolerance
-        }
+        match self.OPTIMIZATION_METHOD:
+            case 'GeneticAlgorithm_Elitism':
+                config = {
+                            "POPULATION_SIZE": self.POPULATION_SIZE,
+                            "GENERATION_COUNT": self.GENERATION_COUNT,
+                            "CHROMOSOME_LENGTH": self.CHROMOSOME_LENGTH,
+                            "LOWER_BOUND": self.LOWER_BOUND,
+                            "UPPER_BOUND": self.UPPER_BOUND,
+                            "FITNESS_FUNCTION_SELECTION": self.FITNESS_FUNCTION_SELECTION,
+                            "SELECTION_METHOD": self.SELECTION_METHOD,
+                            "SELECTION_TOURNAMENT_SIZE": self.SELECTION_TOURNAMENT_SIZE,
+                            "CROSSOVER_METHOD": self.CROSSOVER_METHOD,
+                            "CROSSOVER_RATE": self.CROSSOVER_RATE,
+                            "MUTATION_METHOD": self.MUTATION_METHOD,
+                            "MUTATION_RATE": self.MUTATION_RATE,
+                            "OPTIMIZATION_METHOD": self.OPTIMIZATION_METHOD,
+                            "OPTIMIZATION_METHOD_NUMBER_ELITES": self.OPTIMIZATION_METHOD_NUMBER_ELITES,
+                            "NUM_EXECUTIONS": num_executions,
+                            "OPTIMAL_SOLUTION": optimal_solution,
+                            "TOLERANCE": tolerance
+                        }
+            case 'EvolutionaryStrategy':
+                config = {
+                            "GENERATION_COUNT": self.GENERATION_COUNT,
+                            "CHROMOSOME_LENGTH": self.CHROMOSOME_LENGTH,
+                            "LOWER_BOUND": self.LOWER_BOUND,
+                            "UPPER_BOUND": self.UPPER_BOUND,
+                            "FITNESS_FUNCTION_SELECTION": self.FITNESS_FUNCTION_SELECTION,
+                            "MUTATION_METHOD": self.MUTATION_METHOD,
+                            "OPTIMIZATION_METHOD": self.OPTIMIZATION_METHOD,
+                            "ES_MU": self.ES_MU,
+                            "ES_LAMBDA": self.ES_LAMBDA,
+                            "NUM_EXECUTIONS": num_executions,
+                            "OPTIMAL_SOLUTION": optimal_solution,
+                            "TOLERANCE": tolerance
+                        }
+            case _:
+                raise ValueError(f"Invalid OPTIMIZATION_METHOD: {self.OPTIMIZATION_METHOD}")
+
 
 
         # Store performance metrics in RESULTS
@@ -291,6 +316,57 @@ class MainOptimizationScript:
             overwrite=True
         )
 
+    def evolutionary_strategy_optimization(self):
+        """
+        Perform optimization using the evolutionary strategy method.
+        """
+        mu = self.ES_MU
+        lambda_ = self.ES_LAMBDA
+        step_size = 0.15
+
+        population = []
+        self.best_fitness_per_generation = []
+        self.diversity_per_generation = []
+        self.euclidean_diversity_per_generation = []  # Store Euclidean diversity metrics
+        best_so_far = float('inf')
+        best_solution = None
+        no_improvement_count = 0
+        n_children = int(lambda_/mu) #Number of children per parent 
+       
+        for _ in range(lambda_):
+            candidate = None
+            while candidate is None or not self.in_bounds(candidate):
+                candidate = self.generate_chromosome()
+            population.append(candidate)
+        population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
+
+        for epoch in range(self.GENERATION_COUNT):
+            
+            selected_indices = sorted(range(len(population_fitness)), key=lambda i: population_fitness[i][1])[:mu]
+            children, best_solution, best_so_far = EvolutionaryStrategies.mi_c_lambda(population_fitness, 
+                                                                                        selected_indices, 
+                                                                                        n_children, 
+                                                                                        step_size,
+                                                                                        best_so_far,
+                                                                                        best_solution)
+            population = children
+
+            population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
+
+            # Calculate and store diversity (standard deviation)
+            gene_matrix = np.array([chromosome for chromosome, _ in population_fitness])  # Extract genes into a matrix
+            diversity = np.mean(np.std(gene_matrix, axis=0))  # Calculate mean of standard deviations across dimensions
+            self.diversity_per_generation.append(diversity)
+
+            # Store fitness values for the current generation
+            self.best_fitness_per_generation.append(best_so_far)
+        
+        # Ensure the best solution is returned as a list, not a numpy array
+        best_population_fitness = (best_solution.tolist(), best_so_far)
+        return best_population_fitness            
+
+
+
     def elitism_optimization(self):
         population = []
         population = [self.generate_chromosome() for _ in range(self.POPULATION_SIZE)]
@@ -303,8 +379,6 @@ class MainOptimizationScript:
         no_improvement_count = 0
 
         for idx in range(self.GENERATION_COUNT):          
-            # population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
-            # self.population_fitness = population_fitness
             #Select parents for crossover
             selected_parents = self.selection(population_fitness)
             #Create offspring through crossover and mutation
@@ -524,7 +598,11 @@ class MainOptimizationScript:
         ax.plot_surface(X, Y, Z, cmap='viridis')
         plt.title("Fitness Function Visualization")
         plt.show(block=False)  # Allow script to continue without blocking
-
+    def in_bounds(self, chromosome):
+        """
+        Check if a chromosome is within the defined bounds.
+        """
+        return all(self.LOWER_BOUND <= gene <= self.UPPER_BOUND for gene in chromosome)
     def save_results(self, results, config, performance_metrics, curve_data, optimal_points, curve_std_data, optimal_points_std):
         """
         Save results, configuration, figures, performance metrics, curve data, and optimal points with their standard deviations to a timestamped folder.
@@ -601,3 +679,4 @@ class MainOptimizationScript:
 
 
         print(f"Results saved in: {results_dir}")
+
