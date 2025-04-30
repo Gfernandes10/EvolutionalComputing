@@ -60,6 +60,7 @@ class MainOptimizationScript:
         ## Parameters for Evolutionary Strategy
         self.ES_MU = 20  # Number of parents in ES
         self.ES_LAMBDA = 100  # Number of offspring in ES
+        self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY = 'mi_c_lambda'  # Options: 'mi_c_lambda', 'mi_plus_lambda'
 
 
 
@@ -279,6 +280,7 @@ class MainOptimizationScript:
                             "FITNESS_FUNCTION_SELECTION": self.FITNESS_FUNCTION_SELECTION,
                             "MUTATION_METHOD": self.MUTATION_METHOD,
                             "OPTIMIZATION_METHOD": self.OPTIMIZATION_METHOD,
+                            "OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY": self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY,
                             "ES_MU": self.ES_MU,
                             "ES_LAMBDA": self.ES_LAMBDA,
                             "NUM_EXECUTIONS": num_executions,
@@ -343,14 +345,23 @@ class MainOptimizationScript:
         for epoch in range(self.GENERATION_COUNT):
             
             selected_indices = sorted(range(len(population_fitness)), key=lambda i: population_fitness[i][1])[:mu]
-            children, best_solution, best_so_far = EvolutionaryStrategies.mi_c_lambda(population_fitness, 
-                                                                                        selected_indices, 
-                                                                                        n_children, 
-                                                                                        step_size,
-                                                                                        best_so_far,
-                                                                                        best_solution)
+            match self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY:
+                case 'mi_c_lambda':
+                    children, best_solution, best_so_far = EvolutionaryStrategies.mi_c_lambda(population_fitness, 
+                                                                                                selected_indices, 
+                                                                                                n_children, 
+                                                                                                step_size,
+                                                                                                best_so_far,
+                                                                                                best_solution)
+                case 'mi_plus_lambda':
+                    children, best_solution, best_so_far = EvolutionaryStrategies.mi_plus_lambda(population_fitness, 
+                                                                                                selected_indices, 
+                                                                                                n_children, 
+                                                                                                 step_size)
+                case _:
+                    raise ValueError(f"Invalid OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY: {self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY}")
+            
             population = children
-
             population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
 
             # Calculate and store diversity (standard deviation)
