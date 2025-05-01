@@ -3,7 +3,7 @@ import numpy as np
 
 class EvolutionaryStrategies:
     @staticmethod
-    def mi_c_lambda(population_fitness, selected_indices, n_children, step_size, best_so_far, best_solution):
+    def mi_comma_lambda(population_fitness, selected_indices, n_children, step_size, best_so_far, best_solution, LOWER_BOUND, UPPER_BOUND):
         """
         Generate children by adding Gaussian noise to selected parents.
 
@@ -29,13 +29,15 @@ class EvolutionaryStrategies:
 
             # Create children from the selected parents
             for _ in range(n_children):
-                child = population_fitness[i][0] + np.random.randn(len(population_fitness[i][0])) * step_size
+                child = None
+                while child is None or not EvolutionaryStrategies.in_bounds(child, LOWER_BOUND, UPPER_BOUND):
+                    child = population_fitness[i][0] + np.random.randn(len(population_fitness[i][0])) * step_size
                 children.append(child)
 
         return children, best_solution, best_so_far
     
     @staticmethod
-    def mi_plus_lambda(population_fitness, selected_indices, n_children, step_size):
+    def mi_plus_lambda(population_fitness, selected_indices, n_children, step_size, LOWER_BOUND, UPPER_BOUND):
         """
         Generate children by adding Gaussian noise to selected parents and combine with the original population.
 
@@ -60,14 +62,23 @@ class EvolutionaryStrategies:
                 best_so_far = population_fitness[i][1]
                 best_solution = population_fitness[i][0]
                 print(f"Best: f({best_solution}) = {best_so_far:.5f}")
-
+            # Keep parent in the population
+            children.append(population_fitness[i][0])
             # Create children from the selected parents
             for _ in range(n_children):
-                child = population_fitness[i][0] + np.random.randn(len(population_fitness[i][0])) * step_size
+                child = None
+                while child is None or not EvolutionaryStrategies.in_bounds(child, LOWER_BOUND, UPPER_BOUND):
+                    child = population_fitness[i][0] + np.random.randn(len(population_fitness[i][0])) * step_size
                 children.append(child)
 
-        # Combine parents and children
-        combined_population = population_fitness + [(child, None) for child in children]
 
-        return combined_population, best_solution
+
+        return children, best_solution, best_so_far
+    
+    @staticmethod
+    def in_bounds(chromosome, LOWER_BOUND, UPPER_BOUND):
+        """
+        Check if a chromosome is within the defined bounds.
+        """
+        return all(LOWER_BOUND <= gene <= UPPER_BOUND for gene in chromosome)
 

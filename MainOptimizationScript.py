@@ -60,7 +60,7 @@ class MainOptimizationScript:
         ## Parameters for Evolutionary Strategy
         self.ES_MU = 20  # Number of parents in ES
         self.ES_LAMBDA = 100  # Number of offspring in ES
-        self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY = 'mi_c_lambda'  # Options: 'mi_c_lambda', 'mi_plus_lambda'
+        self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY = 'mi_comma_lambda'  # Options: 'mi_comma_lambda', 'mi_plus_lambda'
 
 
 
@@ -346,18 +346,22 @@ class MainOptimizationScript:
             
             selected_indices = sorted(range(len(population_fitness)), key=lambda i: population_fitness[i][1])[:mu]
             match self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY:
-                case 'mi_c_lambda':
-                    children, best_solution, best_so_far = EvolutionaryStrategies.mi_c_lambda(population_fitness, 
+                case 'mi_comma_lambda':
+                    children, best_solution, best_so_far = EvolutionaryStrategies.mi_comma_lambda(population_fitness, 
                                                                                                 selected_indices, 
                                                                                                 n_children, 
                                                                                                 step_size,
                                                                                                 best_so_far,
-                                                                                                best_solution)
+                                                                                                best_solution,
+                                                                                                 self.LOWER_BOUND,
+                                                                                                 self.UPPER_BOUND)
                 case 'mi_plus_lambda':
                     children, best_solution, best_so_far = EvolutionaryStrategies.mi_plus_lambda(population_fitness, 
                                                                                                 selected_indices, 
                                                                                                 n_children, 
-                                                                                                 step_size)
+                                                                                                 step_size,
+                                                                                                 self.LOWER_BOUND,
+                                                                                                 self.UPPER_BOUND)
                 case _:
                     raise ValueError(f"Invalid OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY: {self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY}")
             
