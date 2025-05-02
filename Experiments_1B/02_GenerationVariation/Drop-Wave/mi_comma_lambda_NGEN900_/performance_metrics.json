@@ -1,0 +1,19 @@
+{
+    "Total Execution Time (s)": 318.2096176147461,
+    "Success Rate (%)": 75.0,
+    "Average Best Fitness": -0.9970011316259402,
+    "Standard Deviation of Best Fitness": 0.004290944341776626,
+    "Best Solution Found": -0.99999616613549,
+    "Chromosome for Best Solution": [
+        -0.000322463562681341,
+        4.2180166286598375e-05
+    ],
+    "Mean of Optimal Points": [
+        -0.0011794515383801792,
+        0.00045964261399513177
+    ],
+    "Standard Deviation of Optimal Points": [
+        0.006644561339505329,
+        0.006101690659317435
+    ]
+}

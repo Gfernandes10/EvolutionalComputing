@@ -61,8 +61,8 @@ class MainOptimizationScript:
         ## Parameters for Evolutionary Strategy
         self.ES_MU = 20  # Number of parents in ES
         self.ES_LAMBDA = 100  # Number of offspring in ES
-        self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY = 'mi_comma_lambda'  # Options: 'mi_comma_lambda', 'mi_plus_lambda'
-
+        self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY = 'mi_comma_lambda'  # Options: 'mi_comma_lambda', 'mi_plus_lambda', 'mibrho_plus_lambda'
+        self.RECOMBINATION_FACTOR_RHO = 10  # Default rho value for mibrho_plus_lambda
 
 
     def evaluate_fitness(self,chromosome):
@@ -137,6 +137,7 @@ class MainOptimizationScript:
         best_overall_fitness = float('inf')  # Initialize best fitness as infinity
         all_best_fitness_per_generation = []  # Store best fitness per generation for all executions
         all_diversity_per_generation = []  # Store diversity per generation for all executions
+        all_step_size_per_generation = []  # Store step size per generation for all executions
 
         self.visualize_fitness_function()
 
@@ -180,10 +181,11 @@ class MainOptimizationScript:
             if distance <= tolerance:
                 success_count += 1
 
-            # Store the best chromosome (optimal point)
+
             optimal_points.append(best_solution)
             all_best_fitness_per_generation.append(self.best_fitness_per_generation)
             all_diversity_per_generation.append(self.diversity_per_generation)
+            all_step_size_per_generation.append(self.step_size_per_generation)
 
         end_time = time.time()  # End timing
         execution_time = end_time - start_time
@@ -206,7 +208,15 @@ class MainOptimizationScript:
             plot_avg=True,
             plot_std=True
         )
-
+        self.RESULTS.add_curve(
+            x_data=range(len(all_step_size_per_generation[0])),
+            y_data=all_step_size_per_generation,
+            x_label="Generation",
+            y_label="Step Size",
+            name="Aggregated Step Size Per Generation",
+            plot_avg=True,
+            plot_std=True
+        )
         
         # Calculate mean and standard deviation of optimal points
         #ONLY FOR 2D PROBLEMS
@@ -286,6 +296,7 @@ class MainOptimizationScript:
                             "OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY": self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY,
                             "ES_MU": self.ES_MU,
                             "ES_LAMBDA": self.ES_LAMBDA,
+                            "RECOMBINATION_FACTOR_RHO": self.RECOMBINATION_FACTOR_RHO,
                             "NUM_EXECUTIONS": num_executions,
                             "OPTIMAL_SOLUTION": optimal_solution,
                             "TOLERANCE": tolerance
@@ -330,12 +341,14 @@ class MainOptimizationScript:
         mu = self.ES_MU
         lambda_ = self.ES_LAMBDA
         c = 0.85  # Default success probability for ES
+        rho = self.RECOMBINATION_FACTOR_RHO # Default rho value for mibrho_plus_lambda
         success_history = []
         success_window = 10*self.CHROMOSOME_LENGTH  # Default success window size
         # step_size = (self.UPPER_BOUND - self.LOWER_BOUND) / np.sqrt(self.CHROMOSOME_LENGTH)  # Initial step size based on chromosome length
         step_size = (self.UPPER_BOUND - 0) / np.sqrt(self.CHROMOSOME_LENGTH)
         population = []
         self.best_fitness_per_generation = []
+        self.step_size_per_generation = []  # Store step size per generation
         self.diversity_per_generation = []
         self.euclidean_diversity_per_generation = []  # Store Euclidean diversity metrics
         best_so_far = float('inf')
@@ -372,6 +385,16 @@ class MainOptimizationScript:
                                                                                     success_history,
                                                                                     success_window,
                                                                                     c)
+                case 'mibrho_plus_lambda':
+                    population_fitness, success_history, step_size = EvolutionaryStrategies.mibrho_plus_lambda(self,
+                                                                                    population_fitness, 
+                                                                                    selected_indices, 
+                                                                                    n_children, 
+                                                                                    step_size,
+                                                                                    success_history,
+                                                                                    success_window,
+                                                                                    c,
+                                                                                    rho)
                 case _:
                     raise ValueError(f"Invalid OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY: {self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY}")
             
@@ -391,10 +414,13 @@ class MainOptimizationScript:
             # Store fitness values for the current generation
             self.best_fitness_per_generation.append(best_so_far)
 
+            # Store step size for the current generation
+            self.step_size_per_generation.append(step_size)
+
             # Stopping criteria
             if self.STOPPING_METHOD == 'TargetFitness' and self.TARGET_FITNESS is not None:
                 if best_so_far <= self.TARGET_FITNESS:
-                    print(f"Stopping early: Target fitness {self.TARGET_FITNESS} reached at generation {idx + 1}.")
+                    print(f"Stopping early: Target fitness {self.TARGET_FITNESS} reached at generation {epoch + 1}.")
                     break
             elif self.STOPPING_METHOD == 'NoImprovement' and self.NO_IMPROVEMENT_LIMIT is not None:
                 if no_improvement_count >= self.NO_IMPROVEMENT_LIMIT:

@@ -94,24 +94,35 @@ class Results:
         y_label = curve["YLabel"]
         name = curve["Name"]
         PlotType = curve["PlotType"]
+        ErrorBarStd = curve["ErrorBarStd"]
 
         if PlotType == "line":            
             if curve["EnableAvg"]:
                 ax.plot(x_data, curve["Avg"], label="Avg", linestyle='--')
                 if curve["EnableStd"]:
-                     ax.fill_between(x_data, curve["Avg"] - curve["Std"], curve["Avg"] + curve["Std"], alpha=0.2, label="Std")
+                    ax.fill_between(x_data, curve["Avg"] - curve["Std"], curve["Avg"] + curve["Std"], alpha=0.2, label="Std")
             if not curve["EnableAvg"] and not curve["EnableStd"]:
-                ax.plot(x_data, y_data, label=name)
+                # Handle multiple lines in y_data and ErrorBarStd
+                if isinstance(y_data[0], (list, np.ndarray)):
+                    for i, y_line in enumerate(y_data):
+                        label = f"{name} {i+1}" if name else f"Line {i+1}"
+                        ax.plot(x_data, y_line, label=label)
+                        if ErrorBarStd is not None:
+                            ax.fill_between(x_data, y_line - ErrorBarStd[i], y_line + ErrorBarStd[i], alpha=0.2, label=f"Std {i+1}")
+                else:
+                    ax.plot(x_data, y_data, label=name)
+                    if ErrorBarStd is not None:
+                        ax.fill_between(x_data, y_data - ErrorBarStd, y_data + ErrorBarStd, alpha=0.2, label="Std")
         elif PlotType == "scatter":
             ax.scatter(x_data, y_data, label=name, alpha=0.6, color='blue')
             ax.errorbar(curve["Avg"][0], curve["Avg"][1], xerr=curve["Std"][0], yerr=curve["Std"][1], fmt='o', color='red', label='Avg ± Std', capsize=5)
         elif PlotType == "errorbar":
-            ErrorBarStd = curve["ErrorBarStd"]
+            
             if ErrorBarStd is not None:
                 ax.errorbar(x_data, y_data, yerr=ErrorBarStd, fmt='o', capsize=5, label="Mean ± Std", color='blue')
                 ax.scatter(x_data, y_data, color='red', label="Mean", zorder=3)
         elif PlotType == "bar":
-            ax.bar(x_data, y_data, width=2, color='blue', alpha=0.7, label=name)  # Ajuste da largura com width
+            ax.bar(x_data, y_data, width=10, color='blue', alpha=0.7, label=name)  # Ajuste da largura com width
 
 
         ax.set_xlabel(x_label)

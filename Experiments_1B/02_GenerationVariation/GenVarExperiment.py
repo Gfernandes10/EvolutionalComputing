@@ -122,7 +122,7 @@ for num_generation in num_generations:
 ResultsObject = Results()
 ResultsObject.add_curve(
     x_data=num_generations,
-    x_label='Number of Executions', 
+    x_label='Number of Generations', 
     y_data=all_success_rates,
     y_label='Success Rate (%)', 
     name='Gens - Success Rate - (mi + lambda)',     
@@ -130,7 +130,7 @@ ResultsObject.add_curve(
 )
 ResultsObject.add_curve(
     x_data=num_generations,
-    x_label='Number of Executions', 
+    x_label='Number of Generations', 
     y_data=all_best_fitness_avg,
     y_std_data=all_best_fitness_std,
     y_label='Average Best Fitness', 
