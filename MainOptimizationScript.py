@@ -31,6 +31,7 @@ class MainOptimizationScript:
         self.best_fitness_per_generation = []  # Store best fitness per generation
         self.figures = []  # List to store figures for saving
         self.RESULTS = Results()  # Initialize the RESULTS property
+        self.ENABLE_SAVE_RESULTS_AUTOMATICALLY = True  # Flag to enable automatic saving of results
 
         # Validate FITNESS_FUNCTION_SELECTION
         if FITNESS_FUNCTION_SELECTION not in self.ALLOWED_FITNESS_FUNCTIONS:
@@ -176,7 +177,6 @@ class MainOptimizationScript:
 
 
             distance = np.linalg.norm(np.array(best_solution) - np.array(optimal_solution)) 
-            # distance = sqrt(sum((a - b) ** 2 for a, b in zip(best_solution, optimal_solution)))
             if distance <= tolerance:
                 success_count += 1
 
@@ -227,6 +227,7 @@ class MainOptimizationScript:
 
         # Calculate performance metrics
         avg_best_fitness = np.mean(best_fitness_values)
+        std_best_fitness = np.std(best_fitness_values)
         success_rate = success_count / num_executions
 
 
@@ -234,6 +235,7 @@ class MainOptimizationScript:
         print(f"Total Execution Time: {execution_time:.2f} seconds")        
         print(f"Success Rate: {success_rate * 100:.2f}%")
         print(f"Average Best Fitness: {avg_best_fitness:.6f}")
+        print(f"Standard Deviation of Best Fitness: {std_best_fitness:.6f}")
         print(f"Best Solution Found: {self.BestResult['BestFitness']}")
         print(f"Chromosome for Best Solution: {self.BestResult['BestSolution']}")
         print(f"Mean of Optimal Points: {mean_optimal_point}")
@@ -243,6 +245,7 @@ class MainOptimizationScript:
             "Total Execution Time (s)": execution_time,
             "Success Rate (%)": success_rate * 100,
             "Average Best Fitness": avg_best_fitness,
+            "Standard Deviation of Best Fitness": std_best_fitness,
             "Best Solution Found": self.BestResult['BestFitness'],
             "Chromosome for Best Solution": self.BestResult['BestSolution'],
             "Mean of Optimal Points": mean_optimal_point.tolist(),  # Convert numpy array to list
@@ -313,10 +316,12 @@ class MainOptimizationScript:
             base_dir = "Results"  # Default directory
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             results_dir = os.path.join(base_dir, f"{folder_name}{timestamp}")
-        self.RESULTS.save_results(
-            path=results_dir,
-            overwrite=True
-        )
+        
+        if self.ENABLE_SAVE_RESULTS_AUTOMATICALLY:
+            self.RESULTS.save_results(
+                path=results_dir,
+                overwrite=True
+            )
 
     def evolutionary_strategy_optimization(self):
         """
@@ -327,7 +332,8 @@ class MainOptimizationScript:
         c = 0.85  # Default success probability for ES
         success_history = []
         success_window = 10*self.CHROMOSOME_LENGTH  # Default success window size
-        step_size = (self.UPPER_BOUND - self.LOWER_BOUND) / np.sqrt(self.CHROMOSOME_LENGTH)  # Initial step size based on chromosome length
+        # step_size = (self.UPPER_BOUND - self.LOWER_BOUND) / np.sqrt(self.CHROMOSOME_LENGTH)  # Initial step size based on chromosome length
+        step_size = (self.UPPER_BOUND - 0) / np.sqrt(self.CHROMOSOME_LENGTH)
         population = []
         self.best_fitness_per_generation = []
         self.diversity_per_generation = []
@@ -335,6 +341,7 @@ class MainOptimizationScript:
         best_so_far = float('inf')
         best_solution = None
         n_children = int(lambda_/mu) #Number of children per parent 
+        no_improvement_count = 0
        
         for _ in range(lambda_):
             candidate = None
@@ -372,7 +379,9 @@ class MainOptimizationScript:
             if current_best[1] < best_so_far:
                 best_so_far = current_best[1]
                 best_solution = current_best[0]
-                print(f"Best: f({best_solution}) = {best_so_far:.5f}")
+                no_improvement_count = 0
+            else:
+                no_improvement_count += 1
 
             # Calculate and store diversity (standard deviation)
             gene_matrix = np.array([chromosome for chromosome, _ in population_fitness])  # Extract genes into a matrix
@@ -381,9 +390,21 @@ class MainOptimizationScript:
 
             # Store fitness values for the current generation
             self.best_fitness_per_generation.append(best_so_far)
+
+            # Stopping criteria
+            if self.STOPPING_METHOD == 'TargetFitness' and self.TARGET_FITNESS is not None:
+                if best_so_far <= self.TARGET_FITNESS:
+                    print(f"Stopping early: Target fitness {self.TARGET_FITNESS} reached at generation {idx + 1}.")
+                    break
+            elif self.STOPPING_METHOD == 'NoImprovement' and self.NO_IMPROVEMENT_LIMIT is not None:
+                if no_improvement_count >= self.NO_IMPROVEMENT_LIMIT:
+                    print(f"Stopping early: No improvement for {self.NO_IMPROVEMENT_LIMIT} generations.")
+                    break
         
         # Ensure the best solution is returned as a list, not a numpy array
-        best_population_fitness = (best_solution.tolist(), best_so_far)
+        if isinstance(best_solution, np.ndarray):
+            best_solution = best_solution.tolist()
+        best_population_fitness = (best_solution, best_so_far)
         return best_population_fitness            
 
 

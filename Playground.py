@@ -13,13 +13,13 @@ optimal_solution=[0, 0]
 # OptimizationObject.multiple_optimization(num_executions=num_executions, optimal_solution=optimal_solution)
 
 OptimizationObject = MainOptimizationScript(FITNESS_FUNCTION_SELECTION=fitness_function, IDENTIFIER=identifier_prefix)
-OptimizationObject.GENERATION_COUNT = 500
+OptimizationObject.GENERATION_COUNT = 1000
 OptimizationObject.CHROMOSOME_LENGTH = 2
 OptimizationObject.LOWER_BOUND = -5.0
 OptimizationObject.UPPER_BOUND = 5.0
 OptimizationObject.ES_LAMBDA = 100
 OptimizationObject.ES_MU = 20
-OptimizationObject.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY = 'mi_plus_lambda'
-OptimizationObject.IDENTIFIER = identifier_prefix + '_mi_plus_lambda'
+OptimizationObject.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY = 'mi_comma_lambda'
+OptimizationObject.IDENTIFIER = identifier_prefix + '_mi_comma_lambda'
 OptimizationObject.multiple_optimization(num_executions=num_executions, optimal_solution=optimal_solution)
 

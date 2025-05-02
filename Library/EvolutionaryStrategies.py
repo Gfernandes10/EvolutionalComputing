@@ -3,7 +3,9 @@ import numpy as np
 
 class EvolutionaryStrategies:
     @staticmethod
-    def mi_comma_lambda(population_fitness, selected_indices, n_children, step_size, best_so_far, best_solution, LOWER_BOUND, UPPER_BOUND):
+    def mi_comma_lambda(MainOptObj, population_fitness, selected_indices, 
+                       n_children, step_size, success_history, 
+                       success_window, c = 0.85):
         """
         Generate children by adding Gaussian noise to selected parents.
 
@@ -19,22 +21,39 @@ class EvolutionaryStrategies:
         - best_so_far: Best fitness value found so far.
         """
         children = []
+        success = 0
+        LOWER_BOUND = MainOptObj.LOWER_BOUND
+        UPPER_BOUND = MainOptObj.UPPER_BOUND
 
         for i in selected_indices:
-            # Check if this parent is the best solution ever seen
-            if population_fitness[i][1] < best_so_far:
-                best_so_far = population_fitness[i][1]
-                best_solution = population_fitness[i][0]
-                print(f"Best: f({best_solution}) = {best_so_far:.5f}")
+            parent = population_fitness[i][0]
+            parent_fitness = population_fitness[i][1]
 
-            # Create children from the selected parents
             for _ in range(n_children):
                 child = None
                 while child is None or not EvolutionaryStrategies.in_bounds(child, LOWER_BOUND, UPPER_BOUND):
-                    child = population_fitness[i][0] + np.random.randn(len(population_fitness[i][0])) * step_size
-                children.append(child)
+                    mutation = np.random.randn(len(parent)) * step_size
+                    child = parent + mutation
 
-        return children, best_solution, best_so_far
+                # Check if the child is better than the parent
+                child_fitness = MainOptObj.evaluate_fitness(child)
+                if child_fitness < parent_fitness:
+                    success = 1
+                else:
+                    success = 0
+
+                child_population_fitness = (child, child_fitness)        
+                children.append(child_population_fitness)
+
+        #Save success history        
+        success_history.append(success)
+        
+        # Apply the 1/5 success rule
+        step_size, success_history = EvolutionaryStrategies.apply_one_fifth_rule(
+            success_history, step_size, c, success_window
+        )
+
+        return children, success_history, step_size
     
     @staticmethod
     def mi_plus_lambda(MainOptObj, population_fitness, selected_indices, 
@@ -60,12 +79,10 @@ class EvolutionaryStrategies:
         UPPER_BOUND = MainOptObj.UPPER_BOUND
 
         for i in selected_indices:
-            # Check if this parent is the best solution ever seen
             parent = population_fitness[i][0]
             parent_fitness = population_fitness[i][1]
             # Keep parent in the population
             children.append(population_fitness[i])
-
 
             # Create children from the selected parents
             for _ in range(n_children):

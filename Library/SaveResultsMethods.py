@@ -21,7 +21,7 @@ class Results:
         self.Config = {}  # Dictionary to store configuration parameters
         self.Metrics = {}  # Dictionary to store additional metrics
 
-    def add_curve(self, x_data, y_data, x_label="X", y_label="Y", name=None, plot_avg=False, plot_std=False, plotType="line"):
+    def add_curve(self, x_data, y_data, x_label="X", y_label="Y", name=None, plot_avg=False, plot_std=False, plotType="line", y_std_data=None):
         """
         Add a curve to the results.
         :param x_data: List of X-axis data.
@@ -29,6 +29,7 @@ class Results:
         :param x_label: Label for the X-axis.
         :param y_label: Label for the Y-axis.
         :param name: Optional name for the curve.
+        :param plotType: Type of plot ('line', 'scatter', 'errorbar', 'bar').
         """
         curve = {
             "X": x_data,
@@ -38,18 +39,20 @@ class Results:
             "Name": name,
             "EnableAvg": plot_avg,
             "EnableStd": plot_std,
+            "ErrorBarStd": y_std_data,
             "PlotType": plotType
         }
-        if plot_avg:           
-            if plotType == "scatter":
+        if plotType == "scatter":
+            if plot_avg:
                 curve["Avg"] = np.mean(np.column_stack((x_data, y_data)), axis=0)
-            else:
-                curve["Avg"] = np.mean(y_data, axis=0)
-        if plot_std:
-            if plotType == "scatter":
+            if plot_std:
                 curve["Std"] = np.std(np.column_stack((x_data, y_data)), axis=0)
-            else:
+        else:
+            if plot_avg:
+                curve["Avg"] = np.mean(y_data, axis=0)
+            if plot_std:
                 curve["Std"] = np.std(y_data, axis=0)
+
 
         self.Curves.append(curve)
     def add_metric(self, name, value):
@@ -90,17 +93,26 @@ class Results:
         x_label = curve["XLabel"]
         y_label = curve["YLabel"]
         name = curve["Name"]
+        PlotType = curve["PlotType"]
 
-        if curve["PlotType"] == "line":            
+        if PlotType == "line":            
             if curve["EnableAvg"]:
                 ax.plot(x_data, curve["Avg"], label="Avg", linestyle='--')
                 if curve["EnableStd"]:
                      ax.fill_between(x_data, curve["Avg"] - curve["Std"], curve["Avg"] + curve["Std"], alpha=0.2, label="Std")
             if not curve["EnableAvg"] and not curve["EnableStd"]:
                 ax.plot(x_data, y_data, label=name)
-        elif curve["PlotType"] == "scatter":
+        elif PlotType == "scatter":
             ax.scatter(x_data, y_data, label=name, alpha=0.6, color='blue')
             ax.errorbar(curve["Avg"][0], curve["Avg"][1], xerr=curve["Std"][0], yerr=curve["Std"][1], fmt='o', color='red', label='Avg ± Std', capsize=5)
+        elif PlotType == "errorbar":
+            ErrorBarStd = curve["ErrorBarStd"]
+            if ErrorBarStd is not None:
+                ax.errorbar(x_data, y_data, yerr=ErrorBarStd, fmt='o', capsize=5, label="Mean ± Std", color='blue')
+                ax.scatter(x_data, y_data, color='red', label="Mean", zorder=3)
+        elif PlotType == "bar":
+            ax.bar(x_data, y_data, width=2, color='blue', alpha=0.7, label=name)  # Ajuste da largura com width
+
 
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
@@ -163,13 +175,14 @@ class Results:
             return False
 
         try:
-            with open(performance_metrics_path, 'w', encoding='utf-8') as perf_file:
-                json.dump(self.PerformanceMetrics, perf_file, indent=4)
-                print(f"Performance metrics saved successfully: {performance_metrics_path}")
-
-            with open(config_path, 'w', encoding='utf-8') as config_file:
-                json.dump(self.Config, config_file, indent=4)
-                print(f"Config saved successfully: {config_path}")
+            if self.PerformanceMetrics:
+                with open(performance_metrics_path, 'w', encoding='utf-8') as perf_file:
+                    json.dump(self.PerformanceMetrics, perf_file, indent=4)
+                    print(f"Performance metrics saved successfully: {performance_metrics_path}")
+            if self.Config:
+                with open(config_path, 'w', encoding='utf-8') as config_file:
+                    json.dump(self.Config, config_file, indent=4)
+                    print(f"Config saved successfully: {config_path}")
         except Exception as e:
             print(f"Failed to save JSON files: {e}")
             return False
