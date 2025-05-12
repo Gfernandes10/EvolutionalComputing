@@ -1,19 +1,19 @@
 {
-    "Total Execution Time (s)": 137.9356472492218,
-    "Success Rate (%)": 36.0,
-    "Average Best Fitness": -0.9885330267003267,
-    "Standard Deviation of Best Fitness": 0.014045594061499031,
-    "Best Solution Found": -0.9998188666375463,
+    "Total Execution Time (s)": 107.29954218864441,
+    "Success Rate (%)": 28.000000000000004,
+    "Average Best Fitness": -0.9871263310250653,
+    "Standard Deviation of Best Fitness": 0.015495772951253359,
+    "Best Solution Found": -0.9998496849324451,
     "Chromosome for Best Solution": [
-        0.0010441052925513894,
-        0.001976595651537516
+        -0.0018461712407329411,
+        -0.0008593506439858872
     ],
     "Mean of Optimal Points": [
-        -0.011797658278938744,
-        0.002279674280531759
+        0.001623743750964779,
+        0.0070669691738982484
     ],
     "Standard Deviation of Optimal Points": [
-        0.07475621303835514,
-        0.05149060663510324
+        0.06071637901295112,
+        0.06845060676111026
     ]
 }

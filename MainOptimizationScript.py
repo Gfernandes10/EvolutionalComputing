@@ -16,6 +16,7 @@ import os  # Import for file and directory handling
 import json  # Import for saving configuration as JSON
 from datetime import datetime  # Import for timestamp
 from scipy.spatial.distance import pdist  # Import for optimized pairwise distances
+from cma import CMA
 
 class MainOptimizationScript:
     def __init__(self, FITNESS_FUNCTION_SELECTION, IDENTIFIER=None):
@@ -32,6 +33,9 @@ class MainOptimizationScript:
         self.figures = []  # List to store figures for saving
         self.RESULTS = Results()  # Initialize the RESULTS property
         self.ENABLE_SAVE_RESULTS_AUTOMATICALLY = True  # Flag to enable automatic saving of results
+        self.best_fitness_per_generation = []
+        self.step_size_per_generation = []  # Store step size per generation
+        self.diversity_per_generation = []
 
         # Validate FITNESS_FUNCTION_SELECTION
         if FITNESS_FUNCTION_SELECTION not in self.ALLOWED_FITNESS_FUNCTIONS:
@@ -51,7 +55,7 @@ class MainOptimizationScript:
         self.MUTATION_METHOD = 'Random'
         self.MUTATION_RATE = 0.1
         self.APPLY_DIVERSITY_MAINTENANCE = True  # Flag to apply diversity maintenance strategies
-        self.OPTIMIZATION_METHOD = 'EvolutionaryStrategy' #Options: 'GeneticAlgorithm_Elitism', 'EvolutionaryStrategy'
+        self.OPTIMIZATION_METHOD = 'EvolutionaryStrategy' #Options: 'GeneticAlgorithm_Elitism', 'EvolutionaryStrategy', 'CMAEStrategy'
         self.OPTIMIZATION_METHOD_NUMBER_ELITES = 20
         self.IDENTIFIER = IDENTIFIER  # Optional identifier for result folder prefix
         self.STOPPING_METHOD = 'GenerationCount'  # Options: 'GenerationCount', 'TargetFitness', 'NoImprovement'
@@ -63,6 +67,11 @@ class MainOptimizationScript:
         self.ES_LAMBDA = 100  # Number of offspring in ES
         self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY = 'mi_comma_lambda'  # Options: 'mi_comma_lambda', 'mi_plus_lambda', 'mibrho_plus_lambda'
         self.RECOMBINATION_FACTOR_RHO = 10  # Default rho value for mibrho_plus_lambda
+
+        ## Parameters for CMA-ES
+        self.CMA_OBJ = None
+        self.CMA_FITNESS_FUNCTION = None
+        self.CMA_INITIAL_STEP_SIZE = None
 
 
     def evaluate_fitness(self,chromosome):
@@ -139,6 +148,10 @@ class MainOptimizationScript:
         all_diversity_per_generation = []  # Store diversity per generation for all executions
         all_step_size_per_generation = []  # Store step size per generation for all executions
 
+        cma_all_generations = []
+        cma_all_step_sizes = []
+        cma_all_gene = []
+
         self.visualize_fitness_function()
 
         start_time = time.time()  # Start timing        
@@ -148,6 +161,8 @@ class MainOptimizationScript:
                     best_population_fitness = self.elitism_optimization()
                 case 'EvolutionaryStrategy':
                     best_population_fitness = self.evolutionary_strategy_optimization()
+                case 'CMAEStrategy':
+                    best_population_fitness = self.cmaes_strategy_optimization()
                 case _:
                     raise ValueError(f"Invalid OPTIMIZATION_METHOD: {self.OPTIMIZATION_METHOD}")
 
@@ -168,6 +183,12 @@ class MainOptimizationScript:
                     "BestSolution": best_solution,
                     "BestFitness": best_fitness
                 }
+                if self.CMA_OBJ is not None:
+                    CMA_TRACE = self.CMA_OBJ.trace
+                    NUM_GENERATIONS = list(range(1, len(CMA_TRACE) + 1))
+                    GENE = [entry['m'] for entry in CMA_TRACE]
+                    STEP_SIZE = [entry['σ'] for entry in CMA_TRACE]
+                    
 
             # Print progress information
             elapsed_time = time.time() - start_time
@@ -187,37 +208,60 @@ class MainOptimizationScript:
             all_diversity_per_generation.append(self.diversity_per_generation)
             all_step_size_per_generation.append(self.step_size_per_generation)
 
+
         end_time = time.time()  # End timing
         execution_time = end_time - start_time
 
-        self.RESULTS.add_curve(
-            x_data=range(len(all_best_fitness_per_generation[0])),
-            y_data=all_best_fitness_per_generation,
-            x_label="Generation",
-            y_label="Average Best Fitness",
-            name="Aggregated Best Fitness Per Generation",
-            plot_avg=True,
-            plot_std=True
-        )
-        self.RESULTS.add_curve(
-            x_data=range(len(all_diversity_per_generation[0])),
-            y_data=all_diversity_per_generation,
-            x_label="Generation",
-            y_label="Average Diversity",
-            name="Aggregated Diversity Per Generation",
-            plot_avg=True,
-            plot_std=True
-        )
-        self.RESULTS.add_curve(
-            x_data=range(len(all_step_size_per_generation[0])),
-            y_data=all_step_size_per_generation,
-            x_label="Generation",
-            y_label="Step Size",
-            name="Aggregated Step Size Per Generation",
-            plot_avg=True,
-            plot_std=True
-        )
+        if all_best_fitness_per_generation and any(all_best_fitness_per_generation):
+            self.RESULTS.add_curve(
+                x_data=range(len(all_best_fitness_per_generation[0])),
+                y_data=all_best_fitness_per_generation,
+                x_label="Generation",
+                y_label="Average Best Fitness",
+                name="Aggregated Best Fitness Per Generation",
+                plot_avg=True,
+                plot_std=True
+            )
+        if all_diversity_per_generation and any(all_diversity_per_generation):
+            self.RESULTS.add_curve(
+                x_data=range(len(all_diversity_per_generation[0])),
+                y_data=all_diversity_per_generation,
+                x_label="Generation",
+                y_label="Average Diversity",
+                name="Aggregated Diversity Per Generation",
+                plot_avg=True,
+                plot_std=True
+            )
+        if all_step_size_per_generation and any(all_step_size_per_generation):
+            self.RESULTS.add_curve(
+                x_data=range(len(all_step_size_per_generation[0])),
+                y_data=all_step_size_per_generation,
+                x_label="Generation",
+                y_label="Step Size",
+                name="Aggregated Step Size Per Generation",
+                plot_avg=True,
+                plot_std=True
+            )
         
+        if self.CMA_OBJ is not None:
+            self.RESULTS.add_curve(
+                x_data=NUM_GENERATIONS,
+                y_data=STEP_SIZE,
+                x_label="Generation",
+                y_label="Step Size",
+                name="CMA-ES Step Size Per Generation",
+            )
+
+            for gene_index in range(len(GENE[0])):
+                # Extract the gene values for the current index across all generations
+                gene = [gene[gene_index] for gene in GENE]
+                self.RESULTS.add_curve(
+                    x_data=NUM_GENERATIONS,
+                    y_data=gene,
+                    x_label="Generation",
+                    y_label=f"Gene {gene_index + 1}",
+                    name=f"CMA-ES Gene {gene_index + 1} Per Generation",
+                )
         # Calculate mean and standard deviation of optimal points
         #ONLY FOR 2D PROBLEMS
         optimal_points = np.array(optimal_points)
@@ -301,6 +345,19 @@ class MainOptimizationScript:
                             "OPTIMAL_SOLUTION": optimal_solution,
                             "TOLERANCE": tolerance
                         }
+            case 'CMAEStrategy':
+                config = {
+                            "GENERATION_COUNT": self.GENERATION_COUNT,
+                            "CHROMOSOME_LENGTH": self.CHROMOSOME_LENGTH,
+                            "POPULATION_SIZE": self.POPULATION_SIZE,
+                            "LOWER_BOUND": self.LOWER_BOUND,
+                            "UPPER_BOUND": self.UPPER_BOUND,
+                            "FITNESS_FUNCTION_SELECTION": self.FITNESS_FUNCTION_SELECTION,
+                            "OPTIMIZATION_METHOD": self.OPTIMIZATION_METHOD,
+                            "NUM_EXECUTIONS": num_executions,
+                            "OPTIMAL_SOLUTION": optimal_solution,
+                            "TOLERANCE": tolerance
+                        }
             case _:
                 raise ValueError(f"Invalid OPTIMIZATION_METHOD: {self.OPTIMIZATION_METHOD}")
 
@@ -333,7 +390,32 @@ class MainOptimizationScript:
                 path=results_dir,
                 overwrite=True
             )
+    def cmaes_strategy_optimization(self):
+        """
+        Perform optimization using the CMA-ES strategy.
+        """
+        # Initialize CMA-ES parameters
+        # Check if CMA-ES parameters are specified
+        if self.CMA_FITNESS_FUNCTION is None or self.CMA_INITIAL_STEP_SIZE is None:
+            raise ValueError("CMA-ES parameters must be specified: CMA_FITNESS_FUNCTION, CMA_INITIAL_STEP_SIZE, and CMA_INITIAL_SOLUTION.")
+        initial_solution = self.generate_chromosome()
+        initial_step_size = self.CMA_INITIAL_STEP_SIZE
+        fitness_fn = self.CMA_FITNESS_FUNCTION
+        max_epoch = self.GENERATION_COUNT
 
+        self.CMA_OBJ = CMA(initial_solution=initial_solution,
+                  initial_step_size=initial_step_size,
+                    fitness_function=fitness_fn,
+                    store_trace=True,
+                    population_size=self.POPULATION_SIZE)
+
+        best_solution, best_fitness = self.CMA_OBJ.search(max_epoch)
+
+        
+        if isinstance(best_solution, np.ndarray):
+            best_solution = best_solution.tolist()
+        best_population_fitness = (best_solution, best_fitness)
+        return best_population_fitness 
     def evolutionary_strategy_optimization(self):
         """
         Perform optimization using the evolutionary strategy method.

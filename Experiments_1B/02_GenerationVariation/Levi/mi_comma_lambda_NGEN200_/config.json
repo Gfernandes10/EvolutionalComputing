@@ -1,0 +1,19 @@
+{
+    "GENERATION_COUNT": 200,
+    "CHROMOSOME_LENGTH": 2,
+    "LOWER_BOUND": -5.0,
+    "UPPER_BOUND": 5.0,
+    "FITNESS_FUNCTION_SELECTION": "Levi",
+    "MUTATION_METHOD": "Random",
+    "OPTIMIZATION_METHOD": "EvolutionaryStrategy",
+    "OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY": "mi_comma_lambda",
+    "ES_MU": 20,
+    "ES_LAMBDA": 100,
+    "RECOMBINATION_FACTOR_RHO": 10,
+    "NUM_EXECUTIONS": 100,
+    "OPTIMAL_SOLUTION": [
+        1,
+        1
+    ],
+    "TOLERANCE": 0.01
+}

@@ -9,6 +9,7 @@
     "OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY": "mi_comma_lambda",
     "ES_MU": 20,
     "ES_LAMBDA": 100,
+    "RECOMBINATION_FACTOR_RHO": 10,
     "NUM_EXECUTIONS": 50,
     "OPTIMAL_SOLUTION": [
         0,

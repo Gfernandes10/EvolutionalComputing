@@ -122,7 +122,8 @@ class Results:
                 ax.errorbar(x_data, y_data, yerr=ErrorBarStd, fmt='o', capsize=5, label="Mean ± Std", color='blue')
                 ax.scatter(x_data, y_data, color='red', label="Mean", zorder=3)
         elif PlotType == "bar":
-            ax.bar(x_data, y_data, width=10, color='blue', alpha=0.7, label=name)  # Ajuste da largura com width
+            ax.bar(x_data, y_data, width=10, color='blue', alpha=0.7, label=name) 
+
 
 
         ax.set_xlabel(x_label)
