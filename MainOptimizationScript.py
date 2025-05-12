@@ -232,6 +232,7 @@ class MainOptimizationScript:
                 plot_avg=True,
                 plot_std=True
             )
+            
         if self.OPTIMIZATION_METHOD == 'EvolutionaryStrategy':
             if all_step_size_per_generation and any(all_step_size_per_generation):
                 self.RESULTS.add_curve(
