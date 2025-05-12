@@ -232,16 +232,17 @@ class MainOptimizationScript:
                 plot_avg=True,
                 plot_std=True
             )
-        if all_step_size_per_generation and any(all_step_size_per_generation):
-            self.RESULTS.add_curve(
-                x_data=range(len(all_step_size_per_generation[0])),
-                y_data=all_step_size_per_generation,
-                x_label="Generation",
-                y_label="Step Size",
-                name="Aggregated Step Size Per Generation",
-                plot_avg=True,
-                plot_std=True
-            )
+        if self.OPTIMIZATION_METHOD == 'EvolutionaryStrategy':
+            if all_step_size_per_generation and any(all_step_size_per_generation):
+                self.RESULTS.add_curve(
+                    x_data=range(len(all_step_size_per_generation[0])),
+                    y_data=all_step_size_per_generation,
+                    x_label="Generation",
+                    y_label="Step Size",
+                    name="Aggregated Step Size Per Generation",
+                    plot_avg=True,
+                    plot_std=True
+                )
         
         if self.CMA_OBJ is not None:
             self.RESULTS.add_curve(
