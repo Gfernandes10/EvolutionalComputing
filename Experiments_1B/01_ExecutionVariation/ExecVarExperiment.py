@@ -37,7 +37,6 @@ for num_execution in num_executions:
     OptimizationObject.ES_MU = 20
     OptimizationObject.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY = OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY
     OptimizationObject.RESULTS_BASE_DIR = results_dir
-    # Run the optimization experiment
     OptimizationObject.multiple_optimization(num_executions=num_execution, optimal_solution=optimal_solution)
     RESULTS_DW_MCL.append(OptimizationObject.RESULTS)
     performance_metrics = RESULTS_DW_MCL[-1].PerformanceMetrics
