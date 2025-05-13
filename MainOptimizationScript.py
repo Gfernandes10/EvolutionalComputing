@@ -1,6 +1,8 @@
 from Library.SelectionMethods import SelectionMethods
 from Library.CrossoverMethods import CrossoverMethods
 from Library.MutationMethods import MutationMethods
+from Library.SaveResultsMethods import Results  # Import the Results class
+from Library.EvolutionaryStrategies import EvolutionaryStrategies  # Import the EvolutionaryStrategies class
 import random
 import numpy as np
 from matplotlib import pyplot as plt
@@ -14,6 +16,7 @@ import os  # Import for file and directory handling
 import json  # Import for saving configuration as JSON
 from datetime import datetime  # Import for timestamp
 from scipy.spatial.distance import pdist  # Import for optimized pairwise distances
+from cma import CMA
 
 class MainOptimizationScript:
     def __init__(self, FITNESS_FUNCTION_SELECTION, IDENTIFIER=None):
@@ -28,6 +31,11 @@ class MainOptimizationScript:
         self.diversity_per_generation = []  # Store diversity metrics
         self.best_fitness_per_generation = []  # Store best fitness per generation
         self.figures = []  # List to store figures for saving
+        self.RESULTS = Results()  # Initialize the RESULTS property
+        self.ENABLE_SAVE_RESULTS_AUTOMATICALLY = True  # Flag to enable automatic saving of results
+        self.best_fitness_per_generation = []
+        self.step_size_per_generation = []  # Store step size per generation
+        self.diversity_per_generation = []
 
         # Validate FITNESS_FUNCTION_SELECTION
         if FITNESS_FUNCTION_SELECTION not in self.ALLOWED_FITNESS_FUNCTIONS:
@@ -35,10 +43,10 @@ class MainOptimizationScript:
 
         # Initialize configuration parameters
         self.POPULATION_SIZE = 200
-        self.GENERATION_COUNT = 100        
+        self.GENERATION_COUNT = 500        
         self.CHROMOSOME_LENGTH = 2
-        self.LOWER_BOUND = -100
-        self.UPPER_BOUND = 100
+        self.LOWER_BOUND = -5
+        self.UPPER_BOUND = 5
         self.FITNESS_FUNCTION_SELECTION = FITNESS_FUNCTION_SELECTION
         self.SELECTION_METHOD = 'Random'
         self.SELECTION_TOURNAMENT_SIZE = 10
@@ -47,13 +55,23 @@ class MainOptimizationScript:
         self.MUTATION_METHOD = 'Random'
         self.MUTATION_RATE = 0.1
         self.APPLY_DIVERSITY_MAINTENANCE = True  # Flag to apply diversity maintenance strategies
-        self.OPTIMIZATION_METHOD = 'Elitism'
+        self.OPTIMIZATION_METHOD = 'EvolutionaryStrategy' #Options: 'GeneticAlgorithm_Elitism', 'EvolutionaryStrategy', 'CMAEStrategy'
         self.OPTIMIZATION_METHOD_NUMBER_ELITES = 20
         self.IDENTIFIER = IDENTIFIER  # Optional identifier for result folder prefix
         self.STOPPING_METHOD = 'GenerationCount'  # Options: 'GenerationCount', 'TargetFitness', 'NoImprovement'
         self.TARGET_FITNESS = None  # Desired fitness value for stopping
         self.NO_IMPROVEMENT_LIMIT = None  # Max generations without improvement
 
+        ## Parameters for Evolutionary Strategy
+        self.ES_MU = 20  # Number of parents in ES
+        self.ES_LAMBDA = 100  # Number of offspring in ES
+        self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY = 'mi_comma_lambda'  # Options: 'mi_comma_lambda', 'mi_plus_lambda', 'mibrho_plus_lambda'
+        self.RECOMBINATION_FACTOR_RHO = 10  # Default rho value for mibrho_plus_lambda
+
+        ## Parameters for CMA-ES
+        self.CMA_OBJ = None
+        self.CMA_FITNESS_FUNCTION = None
+        self.CMA_INITIAL_STEP_SIZE = None
 
 
     def evaluate_fitness(self,chromosome):
@@ -88,37 +106,66 @@ class MainOptimizationScript:
             case _:
                 raise ValueError("Invalid FITNESS_FUNCTION_SELECTION")
         return fitness_value
-        
-    def single_optimization(self):
-        """
-        Initialize the single optimization process.
-        """
-        self.visualize_fitness_function()
-
-        self.elitism_optimization()
-
 
     def multiple_optimization(self, num_executions, optimal_solution=None, tolerance=1e-2):
         """
-        Evaluate the performance of the optimization algorithm.
-        :param num_executions: Number of times to run the optimization.
-        :param optimal_solution: Known optimal solution value (if available).
-        :param tolerance: Tolerance for determining success in finding the optimal solution.
+        Evaluate the performance of the optimization algorithm by running it multiple times and analyzing the results.
+        Parameters:
+            num_executions (int): Number of times to run the optimization.
+            optimal_solution (list, optional): Known optimal solution value (if available). Defaults to None.
+            tolerance (float, optional): Tolerance for determining success in finding the optimal solution. Defaults to 1e-2.
+        Attributes:
+            ResultsOverall (list): Stores the results of all executions, including the best solution and fitness.
+            BestResult (dict): Stores the best solution and fitness found across all executions.
+            best_fitness_values (list): Stores the best fitness values for each execution.
+            all_best_fitness_per_generation (list): Stores the best fitness per generation for all executions.
+            all_diversity_per_generation (list): Stores diversity per generation for all executions.
+        Performance Metrics:
+            avg_best_fitness (float): Average of the best fitness values across all executions.
+            success_rate (float): Percentage of executions that successfully found a solution within the tolerance of the optimal solution.
+            execution_time (float): Total time taken to complete all executions.
+            mean_optimal_point (numpy.ndarray): Mean of the optimal points found across all executions.
+            std_optimal_point (numpy.ndarray): Standard deviation of the optimal points found across all executions.
+        Visualization:
+            - Plots the convergence curve with mean and standard deviation.
+            - Plots population diversity with mean and standard deviation.
+            - Visualizes the mean and standard deviation of optimal points.
+        Saves:
+            - Results of all executions.
+            - Configuration parameters used for the optimization.
+            - Performance metrics.
+            - Aggregated metrics for convergence curves and diversity.
+            - Optimal points and their standard deviations.
+        Returns:
+            None
         """
         success_count = 0
         best_fitness_values = []  # Store best fitness values for each execution
         optimal_points = []  # Store all optimal points found
-
-        self.visualize_fitness_function()
         self.ResultsOverall = []  # Reset results for new executions
         best_overall_fitness = float('inf')  # Initialize best fitness as infinity
-
         all_best_fitness_per_generation = []  # Store best fitness per generation for all executions
         all_diversity_per_generation = []  # Store diversity per generation for all executions
+        all_step_size_per_generation = []  # Store step size per generation for all executions
 
-        start_time = time.time()  # Start timing
+        cma_all_generations = []
+        cma_all_step_sizes = []
+        cma_all_gene = []
+
+        self.visualize_fitness_function()
+
+        start_time = time.time()  # Start timing        
         for execution in range(1, num_executions + 1):
-            best_population_fitness = self.elitism_optimization()
+            match self.OPTIMIZATION_METHOD:
+                case 'GeneticAlgorithm_Elitism':
+                    best_population_fitness = self.elitism_optimization()
+                case 'EvolutionaryStrategy':
+                    best_population_fitness = self.evolutionary_strategy_optimization()
+                case 'CMAEStrategy':
+                    best_population_fitness = self.cmaes_strategy_optimization()
+                case _:
+                    raise ValueError(f"Invalid OPTIMIZATION_METHOD: {self.OPTIMIZATION_METHOD}")
+
             # Retrieve the best solution and its fitness value from the last generation
             best_solution = best_population_fitness[0]
             best_fitness = best_population_fitness[1]
@@ -136,114 +183,340 @@ class MainOptimizationScript:
                     "BestSolution": best_solution,
                     "BestFitness": best_fitness
                 }
+                if self.CMA_OBJ is not None:
+                    CMA_TRACE = self.CMA_OBJ.trace
+                    NUM_GENERATIONS = list(range(1, len(CMA_TRACE) + 1))
+                    GENE = [entry['m'] for entry in CMA_TRACE]
+                    STEP_SIZE = [entry['σ'] for entry in CMA_TRACE]
+                    
 
             # Print progress information
             elapsed_time = time.time() - start_time
-            print(f"Execution {execution}/{num_executions} completed. Best Fitness: {best_fitness:.6f}. Elapsed Time: {elapsed_time:.2f} seconds")
+            print(f"Execution {execution}/{num_executions} completed. Best Fitness: {best_fitness:.6f}. Best Solution: {best_solution} Elapsed Time: {elapsed_time:.2f} seconds")
 
             best_fitness_values.append(best_fitness)
-            # optimal_points.append(best_solution)  # Store the best chromosome (optimal point)
 
-            # Check if the solution is within the tolerance of the optimal solution
-            if optimal_solution is not None:
-                distance = sqrt(sum((a - b) ** 2 for a, b in zip(best_solution, optimal_solution)))
-                if distance <= tolerance:
-                    success_count += 1
-                    optimal_points.append(best_solution)  # Store the best chromosome (optimal point)
 
+
+            distance = np.linalg.norm(np.array(best_solution) - np.array(optimal_solution)) 
+            if distance <= tolerance:
+                success_count += 1
+
+
+            optimal_points.append(best_solution)
             all_best_fitness_per_generation.append(self.best_fitness_per_generation)
             all_diversity_per_generation.append(self.diversity_per_generation)
+            all_step_size_per_generation.append(self.step_size_per_generation)
 
-        # Calculate performance metrics
-        avg_best_fitness = np.mean(best_fitness_values)
-        success_rate = success_count / num_executions
 
         end_time = time.time()  # End timing
         execution_time = end_time - start_time
-        print(f"Total Execution Time: {execution_time:.2f} seconds")
 
-        print(f"Performance Metrics:")
-        print(f"Success Rate: {success_rate * 100:.2f}%")
-        print(f"Average Best Fitness: {avg_best_fitness:.6f}")
-        print(f"Best Solution Found: {self.BestResult['BestFitness']}")
-        print(f"Chromosome for Best Solution: {self.BestResult['BestSolution']}")
-
-        # Calculate aggregated metrics
-        avg_best_fitness_per_generation = np.mean(all_best_fitness_per_generation, axis=0)
-        std_best_fitness_per_generation = np.std(all_best_fitness_per_generation, axis=0)
-        avg_diversity_per_generation = np.mean(all_diversity_per_generation, axis=0)
-        std_diversity_per_generation = np.std(all_diversity_per_generation, axis=0)
-
-        # Plot aggregated metrics
-        self.plot_convergence_curve(avg_best_fitness_per_generation, std_best_fitness_per_generation)
-        self.plot_population_diversity(avg_diversity_per_generation, std_diversity_per_generation)
-
-        # Calculate mean and standard deviation of optimal points
-        optimal_points = np.array(optimal_points)
-        mean_optimal_point = np.mean(optimal_points, axis=0)
-        std_optimal_point = np.std(optimal_points, axis=0)
-
-        print(f"Mean of Optimal Points: {mean_optimal_point}")
-        print(f"Standard Deviation of Optimal Points: {std_optimal_point}")
-
-        # Visualize the mean and standard deviation of optimal points
-        self.plot_optimal_points(optimal_points, mean_optimal_point, std_optimal_point)
-
-        # Call the new plot method in `multiple_optimization` after calculating aggregated metrics
-        self.plot_diversity_metrics(avg_diversity_per_generation, self.euclidean_diversity_per_generation)
+        if all_best_fitness_per_generation and any(all_best_fitness_per_generation):
+            self.RESULTS.add_curve(
+                x_data=range(len(all_best_fitness_per_generation[0])),
+                y_data=all_best_fitness_per_generation,
+                x_label="Generation",
+                y_label="Average Best Fitness",
+                name="Aggregated Best Fitness Per Generation",
+                plot_avg=True,
+                plot_std=True
+            )
+        if all_diversity_per_generation and any(all_diversity_per_generation):
+            self.RESULTS.add_curve(
+                x_data=range(len(all_diversity_per_generation[0])),
+                y_data=all_diversity_per_generation,
+                x_label="Generation",
+                y_label="Average Diversity",
+                name="Aggregated Diversity Per Generation",
+                plot_avg=True,
+                plot_std=True
+            )
+            
+        if self.OPTIMIZATION_METHOD == 'EvolutionaryStrategy':
+            if all_step_size_per_generation and any(all_step_size_per_generation):
+                self.RESULTS.add_curve(
+                    x_data=range(len(all_step_size_per_generation[0])),
+                    y_data=all_step_size_per_generation,
+                    x_label="Generation",
+                    y_label="Step Size",
+                    name="Aggregated Step Size Per Generation",
+                    plot_avg=True,
+                    plot_std=True
+                )
         
-        # Save results, configuration, and figures
-        config = {
-            "POPULATION_SIZE": self.POPULATION_SIZE,
-            "GENERATION_COUNT": self.GENERATION_COUNT,
-            "CHROMOSOME_LENGTH": self.CHROMOSOME_LENGTH,
-            "LOWER_BOUND": self.LOWER_BOUND,
-            "UPPER_BOUND": self.UPPER_BOUND,
-            "FITNESS_FUNCTION_SELECTION": self.FITNESS_FUNCTION_SELECTION,
-            "SELECTION_METHOD": self.SELECTION_METHOD,
-            "SELECTION_TOURNAMENT_SIZE": self.SELECTION_TOURNAMENT_SIZE,
-            "CROSSOVER_METHOD": self.CROSSOVER_METHOD,
-            "CROSSOVER_RATE": self.CROSSOVER_RATE,
-            "MUTATION_METHOD": self.MUTATION_METHOD,
-            "MUTATION_RATE": self.MUTATION_RATE,
-            "OPTIMIZATION_METHOD": self.OPTIMIZATION_METHOD,
-            "OPTIMIZATION_METHOD_NUMBER_ELITES": self.OPTIMIZATION_METHOD_NUMBER_ELITES,
-            "NUM_EXECUTIONS": num_executions,
-            "OPTIMAL_SOLUTION": optimal_solution,
-            "TOLERANCE": tolerance
-        }
+        if self.CMA_OBJ is not None:
+            self.RESULTS.add_curve(
+                x_data=NUM_GENERATIONS,
+                y_data=STEP_SIZE,
+                x_label="Generation",
+                y_label="Step Size",
+                name="CMA-ES Step Size Per Generation",
+            )
+
+            for gene_index in range(len(GENE[0])):
+                # Extract the gene values for the current index across all generations
+                gene = [gene[gene_index] for gene in GENE]
+                self.RESULTS.add_curve(
+                    x_data=NUM_GENERATIONS,
+                    y_data=gene,
+                    x_label="Generation",
+                    y_label=f"Gene {gene_index + 1}",
+                    name=f"CMA-ES Gene {gene_index + 1} Per Generation",
+                )
+        # Calculate mean and standard deviation of optimal points
+        #ONLY FOR 2D PROBLEMS
+        optimal_points = np.array(optimal_points)
+        self.RESULTS.add_curve(
+            x_data=optimal_points[:,0],
+            y_data=optimal_points[:,1],
+            x_label="X Coordinate",
+            y_label="Y Coordinate",
+            name="Optimal Points Distribution",
+            plot_avg=True,
+            plot_std=True,
+            plotType="scatter"
+        )
+
+        mean_optimal_point = self.RESULTS.Curves[-1]["Avg"]
+        std_optimal_point = self.RESULTS.Curves[-1]["Std"]
 
         # Calculate performance metrics
         avg_best_fitness = np.mean(best_fitness_values)
+        std_best_fitness = np.std(best_fitness_values)
         success_rate = success_count / num_executions
+
+
+        print(f"Performance Metrics:")
+        print(f"Total Execution Time: {execution_time:.2f} seconds")        
+        print(f"Success Rate: {success_rate * 100:.2f}%")
+        print(f"Average Best Fitness: {avg_best_fitness:.6f}")
+        print(f"Standard Deviation of Best Fitness: {std_best_fitness:.6f}")
+        print(f"Best Solution Found: {self.BestResult['BestFitness']}")
+        print(f"Chromosome for Best Solution: {self.BestResult['BestSolution']}")
+        print(f"Mean of Optimal Points: {mean_optimal_point}")
+        print(f"Standard Deviation of Optimal Points: {std_optimal_point}")
+
         performance_metrics = {
-            "Total Execution Time (s)": execution_time,
-            "Success Rate (%)": success_rate * 100,
-            "Average Best Fitness": avg_best_fitness,
-            "Best Solution Found": self.BestResult['BestFitness'],
-            "Chromosome for Best Solution": self.BestResult['BestSolution'],
-            "Mean of Optimal Points": mean_optimal_point.tolist(),  # Convert numpy array to list
-            "Standard Deviation of Optimal Points": std_optimal_point.tolist()  # Convert numpy array to list
+            "Total Execution Time (s)": float(execution_time),
+            "Success Rate (%)": float(success_rate * 100),
+            "Average Best Fitness": float(avg_best_fitness),
+            "Standard Deviation of Best Fitness": float(std_best_fitness),
+            "Best Solution Found": float(self.BestResult['BestFitness']),
+            "Chromosome for Best Solution": [float(x) for x in self.BestResult['BestSolution']],
+            "Mean of Optimal Points": [float(x) for x in mean_optimal_point.tolist()],  # Convert numpy array to list of floats
+            "Standard Deviation of Optimal Points": [float(x) for x in std_optimal_point.tolist()]  # Convert numpy array to list of floats
         }
 
-        # Prepare curve data and their standard deviations
-        curve_data = {
-            "convergence_curve": avg_best_fitness_per_generation
-        }
-        curve_std_data = {
-            "convergence_curve": std_best_fitness_per_generation
-        }
+        # Save results, configuration, and figures
+        match self.OPTIMIZATION_METHOD:
+            case 'GeneticAlgorithm_Elitism':
+                config = {
+                            "POPULATION_SIZE": self.POPULATION_SIZE,
+                            "GENERATION_COUNT": self.GENERATION_COUNT,
+                            "CHROMOSOME_LENGTH": self.CHROMOSOME_LENGTH,
+                            "LOWER_BOUND": self.LOWER_BOUND,
+                            "UPPER_BOUND": self.UPPER_BOUND,
+                            "FITNESS_FUNCTION_SELECTION": self.FITNESS_FUNCTION_SELECTION,
+                            "SELECTION_METHOD": self.SELECTION_METHOD,
+                            "SELECTION_TOURNAMENT_SIZE": self.SELECTION_TOURNAMENT_SIZE,
+                            "CROSSOVER_METHOD": self.CROSSOVER_METHOD,
+                            "CROSSOVER_RATE": self.CROSSOVER_RATE,
+                            "MUTATION_METHOD": self.MUTATION_METHOD,
+                            "MUTATION_RATE": self.MUTATION_RATE,
+                            "OPTIMIZATION_METHOD": self.OPTIMIZATION_METHOD,
+                            "OPTIMIZATION_METHOD_NUMBER_ELITES": self.OPTIMIZATION_METHOD_NUMBER_ELITES,
+                            "NUM_EXECUTIONS": num_executions,
+                            "OPTIMAL_SOLUTION": optimal_solution,
+                            "TOLERANCE": tolerance
+                        }
+            case 'EvolutionaryStrategy':
+                config = {
+                            "GENERATION_COUNT": self.GENERATION_COUNT,
+                            "CHROMOSOME_LENGTH": self.CHROMOSOME_LENGTH,
+                            "LOWER_BOUND": self.LOWER_BOUND,
+                            "UPPER_BOUND": self.UPPER_BOUND,
+                            "FITNESS_FUNCTION_SELECTION": self.FITNESS_FUNCTION_SELECTION,
+                            "MUTATION_METHOD": self.MUTATION_METHOD,
+                            "OPTIMIZATION_METHOD": self.OPTIMIZATION_METHOD,
+                            "OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY": self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY,
+                            "ES_MU": self.ES_MU,
+                            "ES_LAMBDA": self.ES_LAMBDA,
+                            "RECOMBINATION_FACTOR_RHO": self.RECOMBINATION_FACTOR_RHO,
+                            "NUM_EXECUTIONS": num_executions,
+                            "OPTIMAL_SOLUTION": optimal_solution,
+                            "TOLERANCE": tolerance
+                        }
+            case 'CMAEStrategy':
+                config = {
+                            "GENERATION_COUNT": self.GENERATION_COUNT,
+                            "CHROMOSOME_LENGTH": self.CHROMOSOME_LENGTH,
+                            "POPULATION_SIZE": self.POPULATION_SIZE,
+                            "LOWER_BOUND": self.LOWER_BOUND,
+                            "UPPER_BOUND": self.UPPER_BOUND,
+                            "FITNESS_FUNCTION_SELECTION": self.FITNESS_FUNCTION_SELECTION,
+                            "OPTIMIZATION_METHOD": self.OPTIMIZATION_METHOD,
+                            "NUM_EXECUTIONS": num_executions,
+                            "OPTIMAL_SOLUTION": optimal_solution,
+                            "TOLERANCE": tolerance
+                        }
+            case _:
+                raise ValueError(f"Invalid OPTIMIZATION_METHOD: {self.OPTIMIZATION_METHOD}")
 
-        # Save results, configuration, figures, performance metrics, curve data, and optimal points with their standard deviations
-        self.save_results(
-            self.ResultsOverall,
-            config,
-            performance_metrics,
-            curve_data,
-            optimal_points.tolist(),  # Convert numpy array to list for saving
-            curve_std_data,
-            std_optimal_point.tolist()  # Convert numpy array to list for saving
-        )
+
+
+        # Store performance metrics in RESULTS
+        self.RESULTS.add_metric("Success Rate (%)", success_rate * 100)
+        self.RESULTS.add_metric("Average Best Fitness", avg_best_fitness)
+        self.RESULTS.add_metric("Best Solution Found", self.BestResult['BestFitness'])
+        self.RESULTS.add_metric("Execution Time (s)", execution_time)
+
+
+        # Store configuration in RESULTS
+        self.RESULTS.set_config(config)
+        self.RESULTS.set_performance(performance_metrics)
+
+        # Save results
+        folder_name = f"{self.IDENTIFIER}_" if self.IDENTIFIER else ""
+        # Determine the base directory for saving results
+        if hasattr(self, 'RESULTS_BASE_DIR') and self.RESULTS_BASE_DIR:
+            base_dir = self.RESULTS_BASE_DIR
+            results_dir = os.path.join(base_dir, f"{folder_name}")
+        else:
+            base_dir = "Results"  # Default directory
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            results_dir = os.path.join(base_dir, f"{folder_name}{timestamp}")
+        
+        if self.ENABLE_SAVE_RESULTS_AUTOMATICALLY:
+            self.RESULTS.save_results(
+                path=results_dir,
+                overwrite=True
+            )
+    def cmaes_strategy_optimization(self):
+        """
+        Perform optimization using the CMA-ES strategy.
+        """
+        # Initialize CMA-ES parameters
+        # Check if CMA-ES parameters are specified
+        if self.CMA_FITNESS_FUNCTION is None or self.CMA_INITIAL_STEP_SIZE is None:
+            raise ValueError("CMA-ES parameters must be specified: CMA_FITNESS_FUNCTION, CMA_INITIAL_STEP_SIZE, and CMA_INITIAL_SOLUTION.")
+        initial_solution = self.generate_chromosome()
+        initial_step_size = self.CMA_INITIAL_STEP_SIZE
+        fitness_fn = self.CMA_FITNESS_FUNCTION
+        max_epoch = self.GENERATION_COUNT
+
+        self.CMA_OBJ = CMA(initial_solution=initial_solution,
+                  initial_step_size=initial_step_size,
+                    fitness_function=fitness_fn,
+                    store_trace=True,
+                    population_size=self.POPULATION_SIZE)
+
+        best_solution, best_fitness = self.CMA_OBJ.search(max_epoch)
+
+        
+        if isinstance(best_solution, np.ndarray):
+            best_solution = best_solution.tolist()
+        best_population_fitness = (best_solution, best_fitness)
+        return best_population_fitness 
+    def evolutionary_strategy_optimization(self):
+        """
+        Perform optimization using the evolutionary strategy method.
+        """
+        mu = self.ES_MU
+        lambda_ = self.ES_LAMBDA
+        c = 0.85  # Default success probability for ES
+        rho = self.RECOMBINATION_FACTOR_RHO # Default rho value for mibrho_plus_lambda
+        success_history = []
+        success_window = 10*self.CHROMOSOME_LENGTH  # Default success window size
+        # step_size = (self.UPPER_BOUND - self.LOWER_BOUND) / np.sqrt(self.CHROMOSOME_LENGTH)  # Initial step size based on chromosome length
+        step_size = (self.UPPER_BOUND - 0) / np.sqrt(self.CHROMOSOME_LENGTH)
+        population = []
+        self.best_fitness_per_generation = []
+        self.step_size_per_generation = []  # Store step size per generation
+        self.diversity_per_generation = []
+        self.euclidean_diversity_per_generation = []  # Store Euclidean diversity metrics
+        best_so_far = float('inf')
+        best_solution = None
+        n_children = int(lambda_/mu) #Number of children per parent 
+        no_improvement_count = 0
+       
+        for _ in range(lambda_):
+            candidate = None
+            while candidate is None or not self.in_bounds(candidate):
+                candidate = self.generate_chromosome()
+            population.append(candidate)
+        population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
+        
+        for epoch in range(self.GENERATION_COUNT):
+            
+            selected_indices = sorted(range(len(population_fitness)), key=lambda i: population_fitness[i][1])[:mu]
+            match self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY:
+                case 'mi_comma_lambda':
+                    population_fitness, success_history, step_size = EvolutionaryStrategies.mi_comma_lambda(self,
+                                                                                    population_fitness, 
+                                                                                    selected_indices, 
+                                                                                    n_children, 
+                                                                                    step_size,
+                                                                                    success_history,
+                                                                                    success_window,
+                                                                                    c)
+                case 'mi_plus_lambda':
+                    population_fitness, success_history, step_size = EvolutionaryStrategies.mi_plus_lambda(self,
+                                                                                    population_fitness, 
+                                                                                    selected_indices, 
+                                                                                    n_children, 
+                                                                                    step_size,
+                                                                                    success_history,
+                                                                                    success_window,
+                                                                                    c)
+                case 'mibrho_plus_lambda':
+                    population_fitness, success_history, step_size = EvolutionaryStrategies.mibrho_plus_lambda(self,
+                                                                                    population_fitness, 
+                                                                                    selected_indices, 
+                                                                                    n_children, 
+                                                                                    step_size,
+                                                                                    success_history,
+                                                                                    success_window,
+                                                                                    c,
+                                                                                    rho)
+                case _:
+                    raise ValueError(f"Invalid OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY: {self.OPTIMIZATION_METHOD_EVOLUTIONARY_STRATEGY}")
+            
+            current_best = min(population_fitness, key=lambda x: x[1])
+            if current_best[1] < best_so_far:
+                best_so_far = current_best[1]
+                best_solution = current_best[0]
+                no_improvement_count = 0
+            else:
+                no_improvement_count += 1
+
+            # Calculate and store diversity (standard deviation)
+            gene_matrix = np.array([chromosome for chromosome, _ in population_fitness])  # Extract genes into a matrix
+            diversity = np.mean(np.std(gene_matrix, axis=0))  # Calculate mean of standard deviations across dimensions
+            self.diversity_per_generation.append(diversity)
+
+            # Store fitness values for the current generation
+            self.best_fitness_per_generation.append(best_so_far)
+
+            # Store step size for the current generation
+            self.step_size_per_generation.append(step_size)
+
+            # Stopping criteria
+            if self.STOPPING_METHOD == 'TargetFitness' and self.TARGET_FITNESS is not None:
+                if best_so_far <= self.TARGET_FITNESS:
+                    print(f"Stopping early: Target fitness {self.TARGET_FITNESS} reached at generation {epoch + 1}.")
+                    break
+            elif self.STOPPING_METHOD == 'NoImprovement' and self.NO_IMPROVEMENT_LIMIT is not None:
+                if no_improvement_count >= self.NO_IMPROVEMENT_LIMIT:
+                    print(f"Stopping early: No improvement for {self.NO_IMPROVEMENT_LIMIT} generations.")
+                    break
+        
+        # Ensure the best solution is returned as a list, not a numpy array
+        if isinstance(best_solution, np.ndarray):
+            best_solution = best_solution.tolist()
+        best_population_fitness = (best_solution, best_so_far)
+        return best_population_fitness            
+
 
 
     def elitism_optimization(self):
@@ -258,8 +531,6 @@ class MainOptimizationScript:
         no_improvement_count = 0
 
         for idx in range(self.GENERATION_COUNT):          
-            # population_fitness = [(chromosome, self.evaluate_fitness(chromosome)) for chromosome in population]
-            # self.population_fitness = population_fitness
             #Select parents for crossover
             selected_parents = self.selection(population_fitness)
             #Create offspring through crossover and mutation
@@ -321,6 +592,8 @@ class MainOptimizationScript:
                 if no_improvement_count >= self.NO_IMPROVEMENT_LIMIT:
                     print(f"Stopping early: No improvement for {self.NO_IMPROVEMENT_LIMIT} generations.")
                     break
+
+
         
         return best_population_fitness
     
@@ -477,82 +750,11 @@ class MainOptimizationScript:
         ax.plot_surface(X, Y, Z, cmap='viridis')
         plt.title("Fitness Function Visualization")
         plt.show(block=False)  # Allow script to continue without blocking
-
-    def plot_convergence_curve(self, avg_best_fitness, std_best_fitness):
+    def in_bounds(self, chromosome):
         """
-        Plot the aggregated convergence curve showing the average best fitness per generation.
+        Check if a chromosome is within the defined bounds.
         """
-        fig = plt.figure()  # Create a new figure
-        generations = range(len(avg_best_fitness))
-        plt.plot(generations, avg_best_fitness, label="Average Best Fitness", color='blue')
-        plt.fill_between(generations, 
-                         avg_best_fitness - std_best_fitness, 
-                         avg_best_fitness + std_best_fitness, 
-                         color='blue', alpha=0.2, label="Std Dev")
-        plt.xlabel("Generation")
-        plt.ylabel("Fitness")
-        plt.title("Aggregated Convergence Curve")
-        plt.legend()
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        self.figures.append((fig, "convergence_curve.png"))  # Store the figure and filename
-
-    def plot_population_diversity(self, avg_diversity, std_diversity):
-        """
-        Plot the aggregated diversity of the population over generations.
-        """
-        fig = plt.figure()  # Create a new figure
-        generations = range(len(avg_diversity))
-        plt.plot(generations, avg_diversity, label="Average Diversity", color='orange')
-        plt.fill_between(generations, 
-                         avg_diversity - std_diversity, 
-                         avg_diversity + std_diversity, 
-                         color='orange', alpha=0.2, label="Std Dev")
-        plt.xlabel("Generation")
-        plt.ylabel("Diversity (Standard Deviation)")
-        plt.title("Aggregated Population Diversity")
-        plt.legend()
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        self.figures.append((fig, "population_diversity.png"))  # Store the figure and filename
-
-    def plot_optimal_points(self, optimal_points, mean_point, std_point):
-        """
-        Plot the distribution of optimal points and their mean and standard deviation.
-        """
-        if len(optimal_points) == 0:
-            print("No optimal points to plot.")
-            return
-
-        fig = plt.figure()  # Create a new figure
-        plt.scatter(optimal_points[:, 0], optimal_points[:, 1], label="Optimal Points", alpha=0.6, color='blue')
-        plt.errorbar(mean_point[0], mean_point[1], xerr=std_point[0], yerr=std_point[1], 
-                     fmt='o', color='red', label="Mean ± Std Dev", capsize=5)
-        plt.xlabel("X Coordinate")
-        plt.ylabel("Y Coordinate")
-        plt.title("Optimal Points Distribution")
-        plt.legend()
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        self.figures.append((fig, "optimal_points_distribution.png"))  # Store the figure and filename
-
-    def plot_diversity_metrics(self, std_diversity, euclidean_diversity):
-        """
-        Plot the diversity metrics (standard deviation and Euclidean distance) over generations.
-        """
-        fig = plt.figure()  # Create a new figure
-        generations = range(len(std_diversity))
-        plt.plot(generations, std_diversity, label="Diversity (Std Dev)", color='blue')
-        plt.plot(generations, euclidean_diversity, label="Diversity (Euclidean)", color='green')
-        plt.xlabel("Generation")
-        plt.ylabel("Diversity")
-        plt.title("Diversity Metrics Over Generations")
-        plt.legend()
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        self.figures.append((fig, "diversity_metrics.png"))  # Store the figure and filename
-        # plt.show()  # Display the plot
-        
+        return all(self.LOWER_BOUND <= gene <= self.UPPER_BOUND for gene in chromosome)
     def save_results(self, results, config, performance_metrics, curve_data, optimal_points, curve_std_data, optimal_points_std):
         """
         Save results, configuration, figures, performance metrics, curve data, and optimal points with their standard deviations to a timestamped folder.
@@ -629,3 +831,4 @@ class MainOptimizationScript:
 
 
         print(f"Results saved in: {results_dir}")
+
