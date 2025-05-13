@@ -68,6 +68,7 @@ ResultsObject.add_curve(
     name='Best Fitness - (mi + lambda)',     
     plotType='line',
     y_std_data=all_best_fitness_std,
+    CurveName= ['(μ+λ)', '(μ/ρ+λ)'],
 )
 
 ResultsObject.add_curve(
@@ -78,6 +79,7 @@ ResultsObject.add_curve(
     name ='Step Size - (mi + lambda)',
     plotType='line',
     y_std_data=all_step_size_std,
+    CurveName= ['(μ+λ)', '(μ/ρ+λ)'],
 )
 
 
@@ -149,6 +151,7 @@ ResultsObject.add_curve(
     name='Best Fitness - (mi + lambda)',     
     plotType='line',
     y_std_data=all_best_fitness_std,
+    CurveName= ['(μ+λ)', '(μ/ρ+λ)'],
 )
 
 ResultsObject.add_curve(
@@ -159,6 +162,7 @@ ResultsObject.add_curve(
     name ='Step Size - (mi + lambda)',
     plotType='line',
     y_std_data=all_step_size_std,
+    CurveName= ['(μ+λ)', '(μ/ρ+λ)'],
 )
 
 ResultsObject.save_results(

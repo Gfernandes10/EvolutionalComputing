@@ -170,7 +170,7 @@ As figuras a seguir apresentam alguns resultados para o experimento com 400 iter
 ![StepSizeperGenDropWaveMiPlusLambda](./02_GenerationVariation/Drop-Wave/mi_comma_lambda_NGEN400_/Optimal%20Points%20Distribution.png)
 
 
-#### Experimento 1 - Levi - (μ+λ)
+#### Experimento 2 - Levi - (μ+λ)
 
 A figura a seguir apresenta a média da melhor solução encontrada em conjunto com o seu desvio padrão. 
 
@@ -194,7 +194,7 @@ As figuras a seguir apresentam alguns resultados para o experimento com 200 exec
 
 ![StepSizeperGenLeviMiPlusLambda](./02_GenerationVariation/Levi/mi_plus_lambda_NGEN400_/Optimal%20Points%20Distribution.png)
 
-#### Experimento 1 - Levi - (μ,λ)
+#### Experimento 2 - Levi - (μ,λ)
 
 A figura a seguir apresenta a média da melhor solução encontrada em conjunto com o seu desvio padrão. 
 
@@ -217,3 +217,84 @@ As figuras a seguir apresentam alguns resultados para o experimento com 200 exec
 ![StepSizeperGenLeviMiPlusLambda](./02_GenerationVariation/Levi/mi_comma_lambda_NGEN400_/Aggregated%20Step%20Size%20Per%20Generation.png)
 
 ![StepSizeperGenLeviMiPlusLambda](./02_GenerationVariation/Levi/mi_comma_lambda_NGEN400_/Optimal%20Points%20Distribution.png)
+
+### Experimento 3 - Implementar operadores de recombinação e avaliar o desempenho para a estratégia evolutiva (μ + λ).
+
+Foi implementada a estratégia de recommbinação intermédia, portanto compara-se nas imagens a seguir a implementação (μ + λ) e (μ / ρ + λ) com ρ = 10.
+
+O script que realiza essa implementação pode ser encontrado em: [RecombinationExp.py](./03_RecombinationOperators/RecombinationExp.py)
+
+#### Experimento 3 - Drop-wave 
+
+A seguir apresenta-se a curva de convergência para ambos os casos. 
+
+![ConvergenceCurve](./03_RecombinationOperators/Drop-Wave/Best%20Fitness%20-%20(mi%20+%20lambda).png)
+
+#### Experimento 3 - Levi 
+
+A seguir apresenta-se a curva de convergência para ambos os casos. 
+
+![ConvergenceCurve](./03_RecombinationOperators/Levi/Best%20Fitness%20-%20(mi%20+%20lambda).png)
+
+
+Parece não existir influência significativa da operação de recombinação, talvez por conta da quantidade de variáveis pois ao tirar a média de apenas duas variáveis não é exercida uma diferença significativa na recombinação.
+
+### Experimento 4 - Aplicação do framework CMA-ES
+
+O script que realiza a utilização do framework CMA-ES pode ser encontrado em: [CMAFrameworkExp.py](./04_CMAFramework/CMAFrameworkExp.py). 
+
+Os experimentos utilizando o CMA-ES tiveram uma certa dificuldade em conseguir convergir para resultados aceitáveis de pontos ótimos quando comparado às estratégias apresentadas anteriormente.
+
+
+#### Experimento 4 - Drop-wave
+
+Dados de performance
+
+| Métrica                                | Valor                     |
+|---------------------------------------|---------------------------|
+| Total Execution Time (s)              | 632.10                   |
+| Success Rate (%)                      | 30.00                    |
+| Average Best Fitness                  | -0.9553                  |
+| Standard Deviation of Best Fitness    | 0.0293                   |
+| Best Solution Found                   | -1.0000                  |
+| Chromosome for Best Solution          | [-1.69896e-05, 1.94847e-05] |
+| Mean of Optimal Points                | [0.0187, -0.0969]         |
+| Standard Deviation of Optimal Points  | [0.1803, 0.3825]          |
+
+Curvas de resultados
+
+![Gene1](./04_CMAFramework/Drop-Wave/CMAEStrategy_/CMA-ES%20Gene%201%20Per%20Generation.png)
+
+![Gene2](./04_CMAFramework/Drop-Wave/CMAEStrategy_/CMA-ES%20Gene%202%20Per%20Generation.png)
+
+![StepCurve](./04_CMAFramework/Drop-Wave/CMAEStrategy_/CMA-ES%20Step%20Size%20Per%20Generation.png)
+
+![OptimalPoints](./04_CMAFramework/Drop-Wave/CMAEStrategy_/Optimal%20Points%20Distribution.png)
+
+
+#### Experimento 4 - Levi
+
+Dados de performance
+
+| Métrica                                | Valor                     |
+|---------------------------------------|---------------------------|
+| Total Execution Time (s)              | 502.49                   |
+| Success Rate (%)                      | 86.00                    |
+| Average Best Fitness                  | 0.000044                 |
+| Standard Deviation of Best Fitness    | 0.000087                 |
+| Best Solution Found                   | 0.000000                 |
+| Chromosome for Best Solution          | [1.000002, 1.000097]     |
+| Mean of Optimal Points                | [1.000025, 1.000078]     |
+| Standard Deviation of Optimal Points  | [0.000099, 0.006548]     |
+
+Curvas de resultados
+
+Curvas de convergência de cada gene apresentadas para a execução com melhor fitness.
+
+![Gene1](./04_CMAFramework/Levi/CMAEStrategy_/CMA-ES%20Gene%201%20Per%20Generation.png)
+
+![Gene2](./04_CMAFramework/Levi/CMAEStrategy_/CMA-ES%20Gene%202%20Per%20Generation.png)
+
+![StepCurve](./04_CMAFramework/Levi/CMAEStrategy_/CMA-ES%20Step%20Size%20Per%20Generation.png)
+
+![OptimalPoints](./04_CMAFramework/Levi/CMAEStrategy_/Optimal%20Points%20Distribution.png)

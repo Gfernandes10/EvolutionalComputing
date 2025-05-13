@@ -21,7 +21,7 @@ class Results:
         self.Config = {}  # Dictionary to store configuration parameters
         self.Metrics = {}  # Dictionary to store additional metrics
 
-    def add_curve(self, x_data, y_data, x_label="X", y_label="Y", name=None, plot_avg=False, plot_std=False, plotType="line", y_std_data=None):
+    def add_curve(self, x_data, y_data, x_label="X", y_label="Y", name=None, CurveName=None, plot_avg=False, plot_std=False, plotType="line", y_std_data=None):
         """
         Add a curve to the results.
         :param x_data: List of X-axis data.
@@ -37,6 +37,7 @@ class Results:
             "XLabel": x_label,
             "YLabel": y_label,
             "Name": name,
+            "CurveName": CurveName,
             "EnableAvg": plot_avg,
             "EnableStd": plot_std,
             "ErrorBarStd": y_std_data,
@@ -95,7 +96,10 @@ class Results:
         name = curve["Name"]
         PlotType = curve["PlotType"]
         ErrorBarStd = curve["ErrorBarStd"]
-
+        CurveName = curve["CurveName"]
+        if CurveName is None:
+            CurveName = name
+            
         if PlotType == "line":            
             if curve["EnableAvg"]:
                 ax.plot(x_data, curve["Avg"], label="Avg", linestyle='--')
@@ -105,12 +109,12 @@ class Results:
                 # Handle multiple lines in y_data and ErrorBarStd
                 if isinstance(y_data[0], (list, np.ndarray)):
                     for i, y_line in enumerate(y_data):
-                        label = f"{name} {i+1}" if name else f"Line {i+1}"
+                        label = f"{CurveName[i]} " if CurveName[i] else f"Line {i+1}"
                         ax.plot(x_data, y_line, label=label)
                         if ErrorBarStd is not None:
                             ax.fill_between(x_data, y_line - ErrorBarStd[i], y_line + ErrorBarStd[i], alpha=0.2, label=f"Std {i+1}")
                 else:
-                    ax.plot(x_data, y_data, label=name)
+                    ax.plot(x_data, y_data, label=CurveName)
                     if ErrorBarStd is not None:
                         ax.fill_between(x_data, y_data - ErrorBarStd, y_data + ErrorBarStd, alpha=0.2, label="Std")
         elif PlotType == "scatter":

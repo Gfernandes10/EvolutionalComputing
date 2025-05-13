@@ -298,14 +298,14 @@ class MainOptimizationScript:
         print(f"Standard Deviation of Optimal Points: {std_optimal_point}")
 
         performance_metrics = {
-            "Total Execution Time (s)": execution_time,
-            "Success Rate (%)": success_rate * 100,
-            "Average Best Fitness": avg_best_fitness,
-            "Standard Deviation of Best Fitness": std_best_fitness,
-            "Best Solution Found": self.BestResult['BestFitness'],
-            "Chromosome for Best Solution": self.BestResult['BestSolution'],
-            "Mean of Optimal Points": mean_optimal_point.tolist(),  # Convert numpy array to list
-            "Standard Deviation of Optimal Points": std_optimal_point.tolist()  # Convert numpy array to list
+            "Total Execution Time (s)": float(execution_time),
+            "Success Rate (%)": float(success_rate * 100),
+            "Average Best Fitness": float(avg_best_fitness),
+            "Standard Deviation of Best Fitness": float(std_best_fitness),
+            "Best Solution Found": float(self.BestResult['BestFitness']),
+            "Chromosome for Best Solution": [float(x) for x in self.BestResult['BestSolution']],
+            "Mean of Optimal Points": [float(x) for x in mean_optimal_point.tolist()],  # Convert numpy array to list of floats
+            "Standard Deviation of Optimal Points": [float(x) for x in std_optimal_point.tolist()]  # Convert numpy array to list of floats
         }
 
         # Save results, configuration, and figures
