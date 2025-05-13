@@ -4,7 +4,7 @@
 
 O repositório está organizado da seguinte forma:
 
-- **`MainOptimizationScript.py`**: Contém a classe da implementação principal do algoritmo genético, incluindo as funções de otimização, avaliação de fitness, manutenção de diversidade, e geração de gráficos.
+- **`MainOptimizationScript.py`**: Contém a classe da implementação principal do algoritmo de otimização.
 - **`Library`**: Diretório que contém módulos auxiliares, como métodos de seleção, cruzamento e mutação.
 - **`Experiments_1B`**: Diretório onde os resultados dos experimentos são armazenados, incluindo gráficos e tabelas gerados.
 
