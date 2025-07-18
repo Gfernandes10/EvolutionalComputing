@@ -25,7 +25,7 @@ class MainOptimizationScript:
         """
         # Class Parameters
         self.ENABLE_FITNESS_FUNCTION_VISUALIZATION = False
-        self.ALLOWED_FITNESS_FUNCTIONS = ['Base', 'Akley', 'Drop-Wave','Levi']
+        self.ALLOWED_FITNESS_FUNCTIONS = ['Base', 'Akley', 'Drop-Wave','Levi', 'External']
         self.ResultsOverall = []  # Store performance data for all executions
         self.BestResult = None   # Store the best execution result
         self.diversity_per_generation = []  # Store diversity metrics
@@ -43,7 +43,7 @@ class MainOptimizationScript:
 
         # Initialize configuration parameters
         self.POPULATION_SIZE = 200
-        self.GENERATION_COUNT = 500        
+        self.GENERATION_COUNT = 50        
         self.CHROMOSOME_LENGTH = 2
         self.LOWER_BOUND = -5
         self.UPPER_BOUND = 5
@@ -55,7 +55,7 @@ class MainOptimizationScript:
         self.MUTATION_METHOD = 'Random'
         self.MUTATION_RATE = 0.1
         self.APPLY_DIVERSITY_MAINTENANCE = True  # Flag to apply diversity maintenance strategies
-        self.OPTIMIZATION_METHOD = 'EvolutionaryStrategy' #Options: 'GeneticAlgorithm_Elitism', 'EvolutionaryStrategy', 'CMAEStrategy'
+        self.OPTIMIZATION_METHOD = 'GeneticAlgorithm_Elitism' #Options: 'GeneticAlgorithm_Elitism', 'EvolutionaryStrategy', 'CMAEStrategy'
         self.OPTIMIZATION_METHOD_NUMBER_ELITES = 20
         self.IDENTIFIER = IDENTIFIER  # Optional identifier for result folder prefix
         self.STOPPING_METHOD = 'GenerationCount'  # Options: 'GenerationCount', 'TargetFitness', 'NoImprovement'
@@ -72,6 +72,10 @@ class MainOptimizationScript:
         self.CMA_OBJ = None
         self.CMA_FITNESS_FUNCTION = None
         self.CMA_INITIAL_STEP_SIZE = None
+
+        self.EXTERNAL_FITNESS_FUNCTION = None  # Placeholder for external fitness function if needed
+        self.SIMULATOR = None  # Placeholder for simulator object if needed
+        self.DATA = None  # Placeholder for data object if needed
 
 
     def evaluate_fitness(self,chromosome):
@@ -103,6 +107,10 @@ class MainOptimizationScript:
                 term3 = (y - 1)**2 * (1 + np.sin(2 * np.pi * y)**2)
                 fitness_value = term1 + term2 + term3
                 ENABLE_FITNESS_FUNCTION_VISUALIZATION = True
+            case 'External':
+                if self.EXTERNAL_FITNESS_FUNCTION is not None:
+                    # Call the external fitness function with the chromosome and any additional parameters
+                    fitness_value = self.EXTERNAL_FITNESS_FUNCTION(chromosome,self.SIMULATOR, self.DATA)
             case _:
                 raise ValueError("Invalid FITNESS_FUNCTION_SELECTION")
         return fitness_value
@@ -197,10 +205,10 @@ class MainOptimizationScript:
             best_fitness_values.append(best_fitness)
 
 
-
-            distance = np.linalg.norm(np.array(best_solution) - np.array(optimal_solution)) 
-            if distance <= tolerance:
-                success_count += 1
+            if optimal_solution is not None:
+                distance = np.linalg.norm(np.array(best_solution) - np.array(optimal_solution)) 
+                if distance <= tolerance:
+                    success_count += 1
 
 
             optimal_points.append(best_solution)
@@ -267,19 +275,22 @@ class MainOptimizationScript:
         # Calculate mean and standard deviation of optimal points
         #ONLY FOR 2D PROBLEMS
         optimal_points = np.array(optimal_points)
-        self.RESULTS.add_curve(
-            x_data=optimal_points[:,0],
-            y_data=optimal_points[:,1],
-            x_label="X Coordinate",
-            y_label="Y Coordinate",
-            name="Optimal Points Distribution",
-            plot_avg=True,
-            plot_std=True,
-            plotType="scatter"
-        )
+        mean_optimal_point = np.mean(optimal_points, axis=0)
+        std_optimal_point = np.std(optimal_points, axis=0)
+        if len(optimal_points) > 0 and len(optimal_points[0]) == 2:
 
-        mean_optimal_point = self.RESULTS.Curves[-1]["Avg"]
-        std_optimal_point = self.RESULTS.Curves[-1]["Std"]
+            self.RESULTS.add_curve(
+                x_data=optimal_points[:, 0],
+                y_data=optimal_points[:, 1],
+                x_label="X Coordinate",
+                y_label="Y Coordinate",
+                name="Optimal Points Distribution",
+                plot_avg=True,
+                plot_std=True,
+                plotType="scatter"
+            )
+
+
 
         # Calculate performance metrics
         avg_best_fitness = np.mean(best_fitness_values)
@@ -539,7 +550,11 @@ class MainOptimizationScript:
                 parent1 = selected_parents[i]
                 parent2 = selected_parents[i + 1] if i + 1 < len(selected_parents) else selected_parents[0]
                 child1, child2 = self.crossover(parent1, parent2)
-                offspring.extend([self.mutation(child1), self.mutation(child2)])
+                for child in [self.mutation(child1), self.mutation(child2)]:
+                    if self.in_bounds(child):
+                        offspring.append(child)
+
+            
             new_population_fitness = [(chromosome, 0) for chromosome in offspring]
             
             #Apply elitism to retain the best individuals
@@ -645,7 +660,7 @@ class MainOptimizationScript:
         """
         Generate a random chromosome.
         """
-        return [random.uniform(self.LOWER_BOUND, self.UPPER_BOUND) for _ in range(self.CHROMOSOME_LENGTH)]
+        return [random.uniform(self.LOWER_BOUND[i], self.UPPER_BOUND[i]) for i in range(self.CHROMOSOME_LENGTH)]
     
     def selection(self, population_fitness):
         """
@@ -754,7 +769,7 @@ class MainOptimizationScript:
         """
         Check if a chromosome is within the defined bounds.
         """
-        return all(self.LOWER_BOUND <= gene <= self.UPPER_BOUND for gene in chromosome)
+        return all(self.LOWER_BOUND[i] <= gene <= self.UPPER_BOUND[i] for i, gene in enumerate(chromosome))
     def save_results(self, results, config, performance_metrics, curve_data, optimal_points, curve_std_data, optimal_points_std):
         """
         Save results, configuration, figures, performance metrics, curve data, and optimal points with their standard deviations to a timestamped folder.

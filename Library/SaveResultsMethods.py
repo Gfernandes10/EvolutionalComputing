@@ -126,7 +126,11 @@ class Results:
                 ax.errorbar(x_data, y_data, yerr=ErrorBarStd, fmt='o', capsize=5, label="Mean ± Std", color='blue')
                 ax.scatter(x_data, y_data, color='red', label="Mean", zorder=3)
         elif PlotType == "bar":
-            ax.bar(x_data, y_data, width=10, color='blue', alpha=0.7, label=name) 
+            if hasattr(y_data, "plot"):
+                y_data.index = x_data
+                y_data.plot(kind="bar", color='lightgreen', edgecolor='black', ax=ax)
+            else:
+                ax.bar(x_data, y_data, width=0.8, color='lightgreen', alpha=0.7, label=name) 
 
 
 
